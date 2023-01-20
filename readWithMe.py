@@ -12,3 +12,6 @@ class ReadWithMe:
         
     def word_sync(self):
         self.finalModel.word_sync()
+
+    def phrase_sync(self):
+        self.finalModel.phrase_sync()
