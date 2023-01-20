@@ -9,3 +9,6 @@ class ReadWithMe:
   
     def karaoke_reading(self):
         self.finalModel.karaoke_reading()
+        
+    def word_sync(self):
+        self.finalModel.word_sync()

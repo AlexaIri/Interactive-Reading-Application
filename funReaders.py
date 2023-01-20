@@ -9,4 +9,6 @@ font_size = int(sys.argv[5])
 
 speech_engine = ReadWithMe(lang, model, model_path)
 
-
+print("The call to the ReadWithMe API was successful!")
+if mode == "read":
+    speech_engine.karaoke_reading()

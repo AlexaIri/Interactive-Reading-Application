@@ -5,7 +5,7 @@ readWithMe = ReadWithMe("English(US)", "vosk", r"C:\Users\Asus ZenBook\Desktop\U
 readWithMe.karaoke_reading()
 
 gpt3 = MetaverseGenerator()
-gpt3.view_app()
+#gpt3.view_app()
 
 
 
