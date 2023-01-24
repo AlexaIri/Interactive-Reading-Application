@@ -19,12 +19,14 @@ class MetaverseGenerator():
     # retrieve the authentication token associated with the OpenAI account of the developer 
     openai.api_key = auth_token_gpt3
 
-    def __init__(self):
+    def __init__(self, text_prompt):
         #self.image_metadata = image_metadata
         self.app = tk.Tk()
         self.app.geometry("532x632")
         self.app.title("dalle")
         #ctk.set_appearence_mode("dark")
+
+        self.text_prompt = text_prompt
 
         self.main_image = tk.Canvas(self.app, width = 512, height = 512)
         self.main_image.place(x=10, y = 110)
@@ -66,9 +68,9 @@ class MetaverseGenerator():
     def retrieve_image_from_gpt3OpenAI(self):
         global tk_img
         global img
-        text_prompt = self.prompt_input.get()
-        response = openai.Image.create(prompt = text_prompt,
-                                       n = 2, 
+        #text_prompt = self.prompt_input.get()
+        response = openai.Image.create(prompt = self.text_prompt,
+                                       n = 1, 
                                        size ="512x512",
                                        response_format="b64_json",
                                        )
@@ -81,7 +83,7 @@ class MetaverseGenerator():
         #image_unique_id = f"{prompt[:5]}-{response['created']}"
         # ADD IMAGE_METADATA IN THAT JSON: the whole passage text from which it was generated, 
         #the start and end indexes of it, the indexes of the phrases it contains 
-        _, file_name = self.encode_images_to_json(text_prompt, response)
+        _, file_name = self.encode_images_to_json(self.text_prompt, response)
         self.decode_image_from_json(file_name)
 
     def save_image_as_pngs(self):

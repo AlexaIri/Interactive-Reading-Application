@@ -21,12 +21,13 @@ import spacy
 #import turtle
 from itertools import islice
 import nltk
+from gpt3Api import MetaverseGenerator
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
 class VoskModel():
     def __init__(self, lang, model_path, mode='transcription', safety_word='stop' ):
-        self.model_path = model_path # self._get_model_path()
+        self.model_path = model_path  # self._get_model_path()
         self.q = queue.Queue()
         self.previous_line = ""
         self.previous_length = 0
@@ -49,7 +50,7 @@ class VoskModel():
         print("model's path:" + self.model_path)
         device_info = sd.query_devices(kind='input')
         samplerate = int(device_info['default_samplerate'])
-        location = self.model_path+ "\\"+ self.lang
+        location = self.model_path+ "\\"+ self.lang 
         
         model = vosk.Model(location)
 
@@ -128,7 +129,7 @@ class VoskModel():
             return list(about_text.sents)
         sentences = get_sentences(clean_story_text)
         #sentences = [sentence for sentence in sentences if not sentence.text.isspace()]
-  
+        
         print(sentences)
   
         def get_dictio_sentences(phrases):
@@ -288,7 +289,7 @@ class VoskModel():
             
     def get_indexes(self,list_of_indexes, corresponding_indexes, length):
         if len(list_of_indexes) == 0:
-            return -1,-1
+            return -1, -1
         if len(list_of_indexes) == 1:
             if len(list_of_indexes[0])==1: 
                 #calculate beginning and end, and return to do this, need to know index of the current one, otherwise assume it is not enough
@@ -328,6 +329,7 @@ class VoskModel():
         else:
             return -1, -1
 
+
     ######################## PHRASE SYNC #################################
 
     def phrase_sync(self, phrase_spoken, splitted_text_with_punctuation):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
@@ -341,7 +343,6 @@ class VoskModel():
             while ind<len(text) and (text[ind].isspace() or text[ind] == ""):
                 ind += 1
             return ind
-
         splitted_text_with_punctuation = splitted_text_with_punctuation[eliminate_leading_whitespaces(splitted_text_with_punctuation):]
        
         # Step 2: an enter = 3 consecutive whitespaces (" "); find the first occurence of exactly three consecutive whitespaces to see which/where the first word of the first phrase is/starts from
@@ -386,11 +387,13 @@ class VoskModel():
         def get_sentences(text):
             about_text = self.nlp(text) # text is a string including the whole screenshotted story, with the punctuation included
             return list(about_text.sents)
-        sentences = get_sentences(clean_story_text)
+        sentences = get_sentences( ' '.join(splitted_text_with_punctuation)) #get_sentences(clean_story_text)
         #sentences = [sentence for sentence in sentences if not sentence.text.isspace()]
   
-        print(sentences)
-  
+        print("sentences\n:")
+        for count, sentence in enumerate(sentences):
+            print("Sent number", count, " ", sentence, "\n")
+
         def get_dictio_sentences(phrases):
             sentence_metadata = dict()
             for i in range(len(phrases)):
@@ -432,7 +435,11 @@ class VoskModel():
             return detected_sentence
         # phrase_spoken = ' '.join(phrase_spoken)
   
-        detected_sentence, index_sentence = belong_to_which_sentence(phrase_spoken, sentences)
+        detected_sentence, index_sentence = belong_to_which_sentence(phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
+        
+        gpt3 = MetaverseGenerator(detected_sentence.text)
+        gpt3.retrieve_image_from_gpt3OpenAI()
+
         print("The sentence to be highlighted: ", detected_sentence)
         print(sentence_metadata[index_sentence][0] + how_much_got_removed, sentence_metadata[index_sentence][1] + how_much_got_removed)
         self.highlight(sentence_metadata[index_sentence][0] + how_much_got_removed, sentence_metadata[index_sentence][1] + how_much_got_removed)
@@ -447,12 +454,13 @@ class VoskModel():
         print("THE HIGHLIGHTING STARTS")
         pyautogui.moveTo(self.co_ord_list[first_word_index][1], self.co_ord_list[first_word_index][2], duration = 0.1)
         pyautogui.click()
-        pyautogui.keyDown('shift') # press the shift key
+        pyautogui.keyDown('shift') # press the key
         pyautogui.keyDown('ctrl')
         pyautogui.dragTo(self.co_ord_list[last_word_index][1]+self.co_ord_list[last_word_index][3], 
             self.co_ord_list[last_word_index][2]+self.co_ord_list[last_word_index][4], duration = 0.3)
-        pyautogui.keyUp('shift') # release the shift key
+        pyautogui.keyUp('shift') # release the key
         pyautogui.keyUp('ctrl')
+
 
     ###################### BORDER WORDS AROUND BOXES BASED ON YOUR PRONOUNTIATION ##############################
 
