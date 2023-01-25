@@ -1,61 +1,45 @@
-import queue
+import imghdr
 import cv2
-from gpt3Api import MetaverseGenerator
 
 class WordSync():
-    def __init__(self, lang, model_path, mode='transcription', safety_word='stop' ):
-        self.model_path = model_path # self._get_model_path()
-        self.q = queue.Queue()
-        self.previous_line = ""
-        self.previous_length = 0
-        self.mode = mode
-        self.safety_word = safety_word
-        self.lang = lang
-        self.rec = ""
-        self.text_dict = {}
-        self.co_ord_list = []
-        self.last_index = -1
-        self.first_index = -1
-        self.match = False
-    
+    def __init__(self, img, phrase_spoken, input_text_for_sync, co_ord_list):
+        self.img = img 
+        self.phrase_spoken = phrase_spoken
+        self.input_text_for_sync = input_text_for_sync
+        self.co_ord_list = co_ord_list
     ######################## WORD SYNC ALGORITHM #################################
 
 
-    def word_sync(self,img, phrase_said, cleaned_words):
+    def word_sync(self):
 
-        """ if partial and self.match = false:
-        continue
-    if text = self.match = false
-    if previous first and current first match - self.match = true previous len and current length = number of indices you have to highlight and current highlight function can do one at a time
-        """
-        phrase_said = phrase_said['text'].split()
+        self.phrase_spoken = self.phrase_spoken['text'].split()
+        self.input_text_for_sync = ' '.join(self.input_text_for_sync).lower().split() 
+        print("brfrg", self.input_text_for_sync)
         
-        cleaned_list_of_words = [s.replace("?","").replace(",","").replace(".","").replace('"','').replace("!","").replace(":","").replace(";","") for s in cleaned_words]
+        cleaned_list_of_words = [s.replace("?","").replace(",","").replace(".","").replace('"','').replace("!","").replace(":","").replace(";","") for s in self.input_text_for_sync]
         
         print("FINAL indexes associated with each word from ss:\n", [(value, count) for count, value in enumerate(cleaned_list_of_words)])
-        print("we are comparing the phrase you just said:", phrase_said)
+        print("we are comparing the phrase you just said:", self.phrase_spoken)
         
         matched_indexes_of_words = []
         indexes_of_correctly_pronounced_words = [] 
-        for word_index in range(len(phrase_said)): 
-            if phrase_said[word_index] in cleaned_list_of_words:
-                matched_indexes_of_words.append([i for i,val in enumerate(cleaned_list_of_words) if val==phrase_said[word_index]])
+        for word_index in range(len(self.phrase_spoken)): 
+            if self.phrase_spoken[word_index] in cleaned_list_of_words:
+                matched_indexes_of_words.append([i for i,val in enumerate(cleaned_list_of_words) if val==self.phrase_spoken[word_index]])
                
                 indexes_of_correctly_pronounced_words.append(word_index)
         print("indexes of our text ss: ", matched_indexes_of_words)
         print("indexes of our phrase: ", indexes_of_correctly_pronounced_words)
-        first, last = self.get_indexes(matched_indexes_of_words, indexes_of_correctly_pronounced_words, len(phrase_said))
+        first, last = self.get_indexes(matched_indexes_of_words, indexes_of_correctly_pronounced_words, len(self.phrase_spoken))
         print("first and last index:", first, last, '\n')
 
         if first!= -1:
             print("WHAT YOU JUST READ")
-            print("this will be highlited from FIRST to LAST:" + " ".join(cleaned_words[first:last]))
-            self.box_words(img, first, last-1, indexes_of_correctly_pronounced_words) 
+            print("this will be highlited from FIRST to LAST:" + " ".join(self.input_text_for_sync[first:last]))
+            #self.highlight(first, last-1) 
+            self.box_words(first, last-1, indexes_of_correctly_pronounced_words) 
             
-
-
-    ######################## GET THE INDEXES OF THE SPOKEN PHRASE AND THE MATCHED SEQUENCE #####################
-        
+            
     def get_indexes(self,list_of_indexes, corresponding_indexes, length):
         if len(list_of_indexes) == 0:
             return -1, -1
@@ -99,22 +83,21 @@ class WordSync():
             return -1, -1
 
 
-
      ###################### BORDER WORDS AROUND BOXES BASED ON YOUR PRONOUNTIATION ##############################
 
-    def box_words(self,img, first_word_index, last_word_index, list_of_correctly_pronounced_words): # method accompanying the word_sync() method
+    def box_words(self, first_word_index, last_word_index, list_of_correctly_pronounced_words): # method accompanying the word_sync() method
         print("THE BOXING STARTS")
         print(list_of_correctly_pronounced_words)
         print(first_word_index, last_word_index)
         rgb_green, rgb_red = (0, 154, 0), (0, 0, 204) 
         for ind in range(last_word_index-first_word_index+1):
             if ind in list_of_correctly_pronounced_words:
-                image = cv2.rectangle(img, (self.co_ord_list[ind+first_word_index][1], self.co_ord_list[ind+first_word_index][2]), 
+                image = cv2.rectangle(self.img, (self.co_ord_list[ind+first_word_index][1], self.co_ord_list[ind+first_word_index][2]), 
                                 (self.co_ord_list[ind+first_word_index][1]+self.co_ord_list[ind+first_word_index][3], 
                                  self.co_ord_list[ind+first_word_index][2]+self.co_ord_list[ind+first_word_index][4]), 
                                  color=rgb_green, thickness= 2) # add green box for correct pronounciation 
             else:
-                image = cv2.rectangle(img, (self.co_ord_list[ind+first_word_index][1], self.co_ord_list[ind+first_word_index][2]), 
+                image = cv2.rectangle(self.img, (self.co_ord_list[ind+first_word_index][1], self.co_ord_list[ind+first_word_index][2]), 
                                 (self.co_ord_list[ind+first_word_index][1]+self.co_ord_list[ind+first_word_index][3], 
                                  self.co_ord_list[ind+first_word_index][2]+self.co_ord_list[ind+first_word_index][4]),
                                 color=rgb_red, thickness=2) # add red box for wrong pronounciation 

@@ -22,6 +22,15 @@ import spacy
 from itertools import islice
 import nltk
 from gpt3Api import MetaverseGenerator
+import spacy
+import nltk, re, pprint
+from nltk.collocations import *
+from pathlib import Path
+import math
+from collections import defaultdict, Counter
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.text import Text
+from wordSync import WordSync
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
@@ -43,7 +52,11 @@ class VoskModel():
         self.nlp = spacy.load("en_core_web_sm")
 
     def setUp(self):
-        # nltk.download()
+
+        nltk.download('punkt')
+        nltk.download('averaged_perceptron_tagger')
+        nltk.download('stopwords')
+
         if not os.path.exists(self.model_path):
             print("Please download a model for your language from https://alphacephei.com/vosk/models")
             print(f"and unpack into {self.model_path}.")
@@ -73,82 +86,35 @@ class VoskModel():
             sys.stdout.flush()
         self.q.put(bytes(indata))
 
-    ##################### text_cleaning_and_sentence_detection ##########################
+    ##################### TEXT CLEANING AND PRE-PROCESSING ##########################
 
-    def text_cleaning_and_sentence_detection(self, splitted_text_with_punctuation):
-         # Step 1: eliminate trailing whitespaces from the text
-        def eliminate_leading_whitespaces(text):
-            ind = 0
-            while ind<len(text) and (text[ind].isspace() or text[ind] == ""):
-                ind += 1
-            return ind
-
-        splitted_text_with_punctuation = splitted_text_with_punctuation[eliminate_leading_whitespaces(splitted_text_with_punctuation):]
-       
-        # Step 2: an enter = 3 consecutive whitespaces (" "); find the first occurence of exactly three consecutive whitespaces to see which/where the first word of the first phrase is/starts from
-        # Why is it needed? (Challenge behind) when screenshotting the pdf/html/word document, every textual element gets added in the string (e.g., Notepad, Adobe, Acrobat. File, Edit, Save, Exit etc) which
-        # is not neccessarily part of the story, therefore these need to be ignored and start the text processing and analysis from the first 'true' word of the story 
-
-        # create a list with all the indexes of the whitespaces in the list of strings 
-        def get_whitespace_indexes(iterable, object):
-            return (index for index, element in enumerate(iterable) if element == object)
-  
-        whitespace_indexes = list(get_whitespace_indexes(splitted_text_with_punctuation, ''))
-
-        # find the index of the first 'true' word of the story 
-        def index_first_word_of_story(whitespace_indexes): 
-            for i in range(len(whitespace_indexes)-2):
-                if(whitespace_indexes[i+1]-whitespace_indexes[i] == 1 and whitespace_indexes[i+2]-whitespace_indexes[i+1] == 1):
-                    if i and whitespace_indexes[i]-whitespace_indexes[i-1]!=1 and i+3<len(whitespace_indexes) and whitespace_indexes[i+3]-whitespace_indexes[i+2]!=1:
-                        return i
-  
-        index_first_word = whitespace_indexes[index_first_word_of_story(whitespace_indexes)]
-        how_much_got_removed = index_first_word - 1 # teoretic ar tb sa fie index_first_word - eliminate_leading_whitespaces(splitted_text_with_punctuation)
-        splitted_text = splitted_text_with_punctuation[(index_first_word+3):]
-
-        def get_splitted_clean_text():
-            index = 0
-            while index<len(splitted_text):
-                if splitted_text[index].replace(" ", "") == "": 
-                    splitted_text.pop(index) # delete the whitespaces
-                else:
-                    index+=1
-            return splitted_text
-        splitted_clean_text = get_splitted_clean_text()
-
-        clean_story_text = ' '.join(splitted_clean_text)
-
-        print(how_much_got_removed)
-        print("The indexes of everything after I cleaned the text:\n", [(value, count) for count, value in enumerate(splitted_clean_text)])
-
-  
-        # Step 3: Sentence Detection via spacy, store the sentences in a list; crate a dictionary with keys as sentence indexes and (start_index_of_sentence, end_index_of_sentence) as values
-
-        def get_sentences(text):
-            about_text = self.nlp(text) # text is a string including the whole screenshotted story, with the punctuation included
-            return list(about_text.sents)
-        sentences = get_sentences(clean_story_text)
-        #sentences = [sentence for sentence in sentences if not sentence.text.isspace()]
+    def delete_from_text(self, list_indexes, tokens):
+        for index in sorted(list_indexes, reverse=True):
+            del tokens[index]
         
-        print(sentences)
-  
-        def get_dictio_sentences(phrases):
-            sentence_metadata = dict()
-            for i in range(len(phrases)):
-                number_of_words_in_phrase = len(phrases[i].text.split())
-                if not i:
-                    sentence_metadata[i] = (i, number_of_words_in_phrase-1)
-                    prev_end = number_of_words_in_phrase
-                else:
-                    sentence_metadata[i] = (prev_end, prev_end+number_of_words_in_phrase-1)
-                    prev_end += number_of_words_in_phrase
-            return sentence_metadata
-  
-        sentence_metadata =  get_dictio_sentences(sentences)
-        print("sentence_metadata\n", sentence_metadata)
 
-        return sentences
+    def clean_text(self, splitted_text_with_punctuation):
 
+        junk_words = ['Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
+        def match_words_with_punctuation(word):
+            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*$',word))
+  
+        stop_words = nltk.corpus.stopwords.words("english")
+  
+        def eliminate_miscellaneous_chars(tokens):
+            indexes_to_del = set()
+            for ind,token in enumerate(tokens):
+                if token not in stop_words and (token.isnumeric() or token in junk_words or match_words_with_punctuation(token)==False or (len(token)==1 and token.isalpha())) :
+                    indexes_to_del.add(ind)
+            return indexes_to_del
+    
+      
+        indexes = eliminate_miscellaneous_chars(splitted_text_with_punctuation)
+        print(" abebfhnewufgewklfe", indexes)
+        self.delete_from_text(indexes, splitted_text_with_punctuation)
+        return indexes
+        #clean_story_text = ' '.join(splitted_clean_text)
+  
 
 
     ################### KARAOKE READING #######################
@@ -159,21 +125,30 @@ class VoskModel():
         try: 
 
             with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None, dtype='int16', channels=1, callback=self._callback):
-                # time.sleep(6)
                 img = pyautogui.screenshot()
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                 words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
-                #print("words generated from ss:", words)
+                print("words generated from ss:", words)
+
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
                 print("data generated from ss:", data)
-                input_text_for_phrase_sync = data['text']
 
-                initial_sentences = self.text_cleaning_and_sentence_detection(input_text_for_phrase_sync)
-                first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = initial_sentences[0], initial_sentences[-1]
+                indexes_to_del = self.clean_text(data['text'])
 
-                # regex matching: digits/alphabetical characters ("\W"); white spaces ("\S")
-                words_clean = re.sub(r'[^\w\s]', '', words).lower() # cleans up the string generated from the screenshot, removing all the special characters apart from _ and returning the lower-case text without punctuation
+                for key in data.keys():
+                    if key!='text':
+                        self.delete_from_text(indexes_to_del, data[key])
+
+                print("NEWWWWWWWWWW data generated from ss:", data)
+                
+
+                input_text_for_sync = data['text']
+                self.contextSync(' '.join(input_text_for_sync))
+                
+                #first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = initial_sentences[0], initial_sentences[-1]
+
+                words_clean = re.sub(r'[^\w\s]', '', words).lower() 
                 #print("words_clean\n", words_clean)
                 splitted = words.split() # split the string according to the whitespaces into a list of words including the punctuation and the special characters 
                 splitted_clean = words_clean.split()  # split the string according to the whitespaces into a list of words without the punctuation and the special characters 
@@ -184,13 +159,13 @@ class VoskModel():
                 
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
                 co_ord_list_len = len(self.co_ord_list)
-                index = 0
-                while index<co_ord_list_len:
-                    if self.co_ord_list[index][0].replace(" ", "") == "": 
-                        self.co_ord_list.pop(index) # delete the whitespaces
-                        co_ord_list_len = len(self.co_ord_list)
-                    else:
-                        index+=1
+                #index = 0
+                #while index<co_ord_list_len:
+                #    if self.co_ord_list[index][0].replace(" ", "") == "": 
+                #        self.co_ord_list.pop(index) # delete the whitespaces
+                #        co_ord_list_len = len(self.co_ord_list)
+                #    else:
+                #        index+=1
                  
 
                 while True:
@@ -239,8 +214,9 @@ class VoskModel():
                                 
                                 
                                 if 'text' in d:
-                                    #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, splitted_clean) 
-                                    self.phrase_sync(d, input_text_for_phrase_sync)
+                                    WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync, self.co_ord_list).word_sync()
+                                    #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
+                                    #self.phrase_sync(d, input_text_for_sync)
 
                               
                                 if d[key] == self.safety_word : return
@@ -262,6 +238,8 @@ class VoskModel():
     if previous first and current first match - self.match = true previous len and current length = number of indices you have to highlight and current highlight function can do one at a time
         """
         phrase_said = phrase_said['text'].split()
+        cleaned_words = ' '.join(cleaned_words).lower().split() 
+        print("brfrg", cleaned_words)
         
         cleaned_list_of_words = [s.replace("?","").replace(",","").replace(".","").replace('"','').replace("!","").replace(":","").replace(";","") for s in cleaned_words]
         
@@ -483,5 +461,172 @@ class VoskModel():
         cv2.imshow('image', image)
         cv2.waitKey(10000) # change 0 to 60000 for the window to be deleted after 1 min = 60sec
 
-        
 
+
+
+
+
+
+    ######################## CONTEXT SYNC ALGORITHM #################################
+
+
+    def contextSync(self, text_with_punctuation):
+        gpt_max_tokens = 1500
+        '''
+        Preprocess the text for a foundational step in information extraction, namely entity detection.
+        To achieve this, we will follow three initial procedures: (1) sentence segmentation, (2) word tokenization, and (3) part-of-speech tagging process.
+        ''' 
+        def tokenization_and_pos_tagging(text):
+            sentences = nltk.sent_tokenize(text)
+            tokens = [nltk.word_tokenize(sentence) for sentence in sentences] 
+            return sentences, tokens
+    
+        def pos_tagging(tokens):
+            return [nltk.pos_tag(token) for token in tokens]
+
+        sentences, tokens = tokenization_and_pos_tagging(text_with_punctuation)
+        # The lexical richness metric shows us the percentage of distinct words in  the text
+        # print(tokens)
+        def lexical_diversity(text): 
+            return len(set(text)) / len(text) 
+
+        lexical_diversity = lexical_diversity(text_with_punctuation)
+        print(f'{format(lexical_diversity*100,".2f")}% unique words')
+  
+        text_without_punctuation = ''.join(filter(lambda x: x not in '".,;!?-', text_with_punctuation))
+        splitted_text_without_punctuation = [word for word in text_without_punctuation.split() if word.isalpha()]
+
+        # The stop words usually occur frequently at any text level, yet they can negatively impact the context analysis and information extraction since they do not possess a powerful meaning
+        def stop_words(words_without_punct, words_with_punct):
+            sents_for_collocation_check = []
+            stop_words = nltk.corpus.stopwords.words("english")
+            without_punct =  [w for w in words_without_punct if w.lower() not in stop_words]
+            for sent in words_with_punct:
+                sents_for_collocation_check.append(' '.join([w for w in sent if w.lower() not in stop_words]))
+            return without_punct, sents_for_collocation_check
+    
+        text_without_stop_words, sents_for_collocation_check = stop_words(splitted_text_without_punctuation, tokens)
+  
+        print("\n The passage tokens after we eliminated the stop words for a meaningful textual analysis:\n", text_without_stop_words, '\n')
+
+        def textual_metrics(words, sentences):
+            average_word_length = sum(map(len, words))/len(words)
+            average_sentence_length = sum(map(len, sentences))/len(sentences)
+            avg_number_words_per_sentence = len(splitted_text_without_punctuation)/len(sentences)
+            word_frequency = Counter(text_without_stop_words) # we will not take into consideration the stopwords since they are the most frequently occurring, yet counting their occurence does not bolster the analysis
+            return average_word_length, average_sentence_length, avg_number_words_per_sentence, word_frequency
+  
+        average_word_length, average_sentence_length, number_words_per_sentence, word_frequency = textual_metrics(splitted_text_without_punctuation, sentences)
+  
+        print("Average Word Length: ", average_word_length)
+        print("Average Sentence Length: ", average_sentence_length)
+        print("Average Number of Words per Sentence: ", number_words_per_sentence)
+        print("Word Frequency: ", word_frequency, '\n')
+        threshold_to_input_to_gpt = math.floor(gpt_max_tokens/number_words_per_sentence)
+        print("Maximum number of phrases to input into the GPT3 algorithm: ", threshold_to_input_to_gpt,'\n')
+
+        # Determine the most frequently utilised nouns 
+        frequent_nouns = set()
+        pos_tagging_tokens = pos_tagging(tokens)
+        for sent_no, splitted_words in enumerate(pos_tagging_tokens):
+            for token in splitted_words:
+                if token[1] in ['NN', 'NNS'] and word_frequency[token[0]]>=2:
+                    frequent_nouns.add(token[0])
+
+        print("Most most frequently utilised nouns: ", frequent_nouns, '\n')
+  
+        '''
+        Implement Entity Recognition 
+  
+        Extract the subjects, objects, and actions from the text based on the word frequency dictionary excluding stop words
+  
+        Create a subjects and objects dictionary whose keys are the indexes of each phrase, and the values are two lists, first representing the subjects of the phrase and the second representing the objects of the phrase
+        '''
+  
+        subjects_and_objects = defaultdict(list) 
+  
+        def extract_subjects_from_sents(self, sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
+            for sent_no, sentence in enumerate(sentences):
+                sentence = self.nlp(sentence)
+                subjects = []
+                for token in sentence:
+                    if ("subj" in token.dep_):
+                        subtree = list(token.subtree)
+                        subjects.append(sentence[(subtree[0].i):(subtree[-1].i + 1)]) # there might be multiple subjects in a phrase
+                subjects_and_objects[sent_no].append(subjects)
+    
+        extract_subjects_from_sents(sentences)
+
+        def extract_objects_from_sents(self, sentences): # redo it's copied
+            for sent_no, sentence in enumerate(sentences):
+                sentence = self.nlp(sentence)
+                objects = []
+                for token in sentence:
+                    if ("dobj" in token.dep_):
+                        subtree = list(token.subtree)
+                        objects.append(sentence[subtree[0].i:(subtree[-1].i + 1)]) # there might be multiple objects in a phrase
+                subjects_and_objects[sent_no].append(objects)
+    
+        extract_objects_from_sents(sentences)
+  
+        print("Subjects and objects per sentence:\n", subjects_and_objects, '\n')
+    
+        # Implement Relation Extraction 
+  
+        # Extract the co-references between the nouns and the pronouns in the text - https://stackoverflow.com/questions/62735456/understanding-and-using-coreference-resolution-stanford-nlp-tool-in-python-3-7
+  
+        # Extract concordance and collocations with bi-grams for context comprehension 
+        collocations, concordances = [], []
+
+        def extract_collocations(text, filter):
+            finder = nltk.collocations.BigramCollocationFinder.from_words(text) 
+            filter = lambda *w: noun not in w
+            finder.apply_ngram_filter(filter) # apply filter based on the most frequent nouns
+            return(finder.ngram_fd.most_common(3))
+    
+
+        def extract_concordance(text, filter):
+            text_conc = Text(word_tokenize(text))
+            return(text_conc.concordance(filter))
+
+        for noun in frequent_nouns:
+            collocations.extend(extract_collocations(text_without_stop_words, noun))
+        # concordances.extend(extract_concordance(text_without_stop_words,noun))
+
+        collocations = [' '.join(elem[0]) for elem in collocations]
+    
+        print("Collocations:\n", collocations)
+        print("\nConcordance:\n", concordances)
+
+        # Input text generator for the GPT3 Metaverse Algorithm
+        step = math.floor(threshold_to_input_to_gpt/(4*average_word_length))
+  
+        for ind in range(0, len(sentences), step):
+            start_ind_phrase = ind
+            coll_score = 0 
+            if(ind+step>len(sentences)):
+                end_ind_phrase = start_ind_phrase + len(sentences) % step
+            else:
+                end_ind_phrase = start_ind_phrase + step - 1
+            passage = ' '.join(sentences[start_ind_phrase:end_ind_phrase])
+            print("The excerpt to be fed into the GPT3 Algorithm is: \n", passage, '\n')
+
+            # Find keywords for image metadata
+            keywords = set(word for word in frequent_nouns if(passage.find(word))!=-1)
+
+            image_metadata = (start_ind_phrase, end_ind_phrase, keywords)
+            print("Image metadata: ", image_metadata, '\n')
+
+
+            collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
+            for collocation in collocations:
+                if(collocated_text.find(collocation)>-1):
+                    coll_score += 1 
+            coll_score *= 100/len(collocations)
+
+            if(coll_score>=30):
+                print(f"The collocation strength score ({coll_score}) showcases a meaningful text excerpt. The GPT3 images can be generated successfully!\n")
+                # call GPT3
+            else:
+                print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
+                # call GPT3
