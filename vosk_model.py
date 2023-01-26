@@ -1,5 +1,4 @@
 import queue
-from random import sample
 from pygments import highlight
 import sounddevice as sd
 import vosk
@@ -18,24 +17,23 @@ import re
 import numpy as np
 import cv2
 import spacy
-#import turtle
 from itertools import islice
 import nltk
 from gpt3Api import MetaverseGenerator
 import spacy
-import nltk, re, pprint
+import nltk, re
 from nltk.collocations import *
 from pathlib import Path
 import math
 from collections import defaultdict, Counter
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import word_tokenize
 from nltk.text import Text
 from wordSync import WordSync
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
 class VoskModel():
-    def __init__(self, lang, model_path, mode='transcription', safety_word='stop' ):
+    def __init__(self, lang, model_path, mode='transcription', safety_word='stop'):
         self.model_path = model_path  # self._get_model_path()
         self.q = queue.Queue()
         self.previous_line = ""
@@ -91,15 +89,21 @@ class VoskModel():
     def delete_from_text(self, list_indexes, tokens):
         for index in sorted(list_indexes, reverse=True):
             del tokens[index]
-        
+
+
+    def get_sentences(self, text):
+        about_text = self.nlp(text) # text is a string including the whole screenshotted story, with the punctuation included
+        return list(about_text.sents)
+    
 
     def clean_text(self, splitted_text_with_punctuation):
 
         junk_words = ['Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
         def match_words_with_punctuation(word):
-            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*$',word))
+            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*',word))
   
         stop_words = nltk.corpus.stopwords.words("english")
+        stop_words.append("I")
   
         def eliminate_miscellaneous_chars(tokens):
             indexes_to_del = set()
@@ -120,7 +124,7 @@ class VoskModel():
     ################### KARAOKE READING #######################
     
 
-    def karaoke_reading(self): # split this into 3 methods: wordSync, phraseSync, contextSync
+    def karaoke_reading(self): 
         rec,samplerate = self.setUp()
         try: 
 
@@ -129,7 +133,7 @@ class VoskModel():
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                 words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
-                print("words generated from ss:", words)
+                #print("words generated from ss:", words)
 
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
                 print("data generated from ss:", data)
@@ -144,65 +148,46 @@ class VoskModel():
                 
 
                 input_text_for_sync = data['text']
-                self.contextSync(' '.join(input_text_for_sync))
-                
-                #first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = initial_sentences[0], initial_sentences[-1]
-
-                words_clean = re.sub(r'[^\w\s]', '', words).lower() 
-                #print("words_clean\n", words_clean)
-                splitted = words.split() # split the string according to the whitespaces into a list of words including the punctuation and the special characters 
-                splitted_clean = words_clean.split()  # split the string according to the whitespaces into a list of words without the punctuation and the special characters 
-                #print("The screenshot read the following-splitted clean \n",splitted_clean)
-                #print("The indexes associated with each word from ss for phrase sync:\n", [(value, count) for count, value in enumerate(input_text_for_phrase_sync)])
-                     
-                    #dict(zip(splitted_clean, [i for i in range(len(splitted_clean))]))
+                contiguous_text = ' '.join(input_text_for_sync)
+                self.contextSync(contiguous_text)
+                sentences = self.get_sentences(contiguous_text)
+                first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = sentences[0], sentences[-1]
                 
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                co_ord_list_len = len(self.co_ord_list)
-                #index = 0
-                #while index<co_ord_list_len:
-                #    if self.co_ord_list[index][0].replace(" ", "") == "": 
-                #        self.co_ord_list.pop(index) # delete the whitespaces
-                #        co_ord_list_len = len(self.co_ord_list)
-                #    else:
-                #        index+=1
                  
-
                 while True:
-                    #current_sentences = self.text_cleaning_and_sentence_detection(input_text_for_phrase_sync)
-                    #print("first sent first ss\n", first_sentence_from_prev_screenshot)
-                    #print("first sent current ss\n", current_sentences[0])
-                    #if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
+                    current_sentences = self.get_sentences(contiguous_text)
+                    print("first sent first ss\n", first_sentence_from_prev_screenshot)
+                    print("first sent current ss\n", current_sentences[0])
+                    if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
 
-                    #    img = pyautogui.screenshot()
-                    #    img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+                        img = pyautogui.screenshot()
+                        img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                    #    words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
-                    #    #print("words generated from ss:", words)
-                    #    data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                    #    #print("data generated from ss:", data)
-                    #    input_text_for_phrase_sync = data['text']
+                        words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
+                        #print("words generated from ss:", words)
+                        data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+                        #print("data generated from ss:", data)
 
-                    #    # regex matching: digits/alphabetical characters ("\W"); white spaces ("\S")
-                    #    words_clean = re.sub(r'[^\w\s]', '', words).lower() # cleans up the string generated from the screenshot, removing all the special characters apart from _ and returning the lower-case text without punctuation
-                    #    #print("words_clean\n", words_clean)
-                    #    splitted = words.split() # split the string according to the whitespaces into a list of words including the punctuation and the special characters 
-                    #    splitted_clean = words_clean.split()  # split the string according to the whitespaces into a list of words without the punctuation and the special characters 
-                    #    #print("The screenshot read the following-splitted clean \n",splitted_clean)
-                    #    #print("The indexes associated with each word from ss for phrase sync:\n", [(value, count) for count, value in enumerate(input_text_for_phrase_sync)])
-                    #            #dict(zip(splitted_clean, [i for i in range(len(splitted_clean))]))
+                        
+                        indexes_to_del = self.clean_text(data['text'])
+
+                        for key in data.keys():
+                            if key!='text':
+                                self.delete_from_text(indexes_to_del, data[key])
+
+                        print("NEWWWWWWWWWW data generated from ss:", data)
                 
-                    #    self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                    #    co_ord_list_len = len(self.co_ord_list)
-                    #    index = 0
-                    #    while index<co_ord_list_len:
-                    #        if self.co_ord_list[index][0].replace(" ", "") == "": 
-                    #            self.co_ord_list.pop(index) # delete the whitespaces
-                    #            co_ord_list_len = len(self.co_ord_list)
-                    #        else:
-                    #            index+=1
-                    #    first_sentence_from_prev_screenshot, last_sentence_from_first_screenshot = current_sentences[0], current_sentences[-1]
-                    # MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
+
+                        input_text_for_sync = data['text']
+                        contiguous_text = ' '.join(input_text_for_sync)
+                        #self.contextSync(contiguous_text)
+                        sentences = self.get_sentences(contiguous_text)
+
+                        self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                        
+                        first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = current_sentences[0], current_sentences[-1]
+                     #MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
                     data = self.q.get()
                     if rec.AcceptWaveform(data):
                         d = json.loads(rec.Result())
@@ -212,11 +197,10 @@ class VoskModel():
                         if d[key]:
                             if d[key] != self.previous_line or key == 'text':
                                 
-                                
                                 if 'text' in d:
-                                    WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync, self.co_ord_list).word_sync()
+                                    #WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync, self.co_ord_list).word_sync()
                                     #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
-                                    #self.phrase_sync(d, input_text_for_sync)
+                                    self.phrase_sync(d, input_text_for_sync)
 
                               
                                 if d[key] == self.safety_word : return
@@ -321,17 +305,10 @@ class VoskModel():
             while ind<len(text) and (text[ind].isspace() or text[ind] == ""):
                 ind += 1
             return ind
-        splitted_text_with_punctuation = splitted_text_with_punctuation[eliminate_leading_whitespaces(splitted_text_with_punctuation):]
        
         # Step 2: an enter = 3 consecutive whitespaces (" "); find the first occurence of exactly three consecutive whitespaces to see which/where the first word of the first phrase is/starts from
         # Why is it needed? (Challenge behind) when screenshotting the pdf/html/word document, every textual element gets added in the string (e.g., Notepad, Adobe, Acrobat. File, Edit, Save, Exit etc) which
         # is not neccessarily part of the story, therefore these need to be ignored and start the text processing and analysis from the first 'true' word of the story 
-
-        # create a list with all the indexes of the whitespaces in the list of strings 
-        def get_whitespace_indexes(iterable, object):
-            return (index for index, element in enumerate(iterable) if element == object)
-  
-        whitespace_indexes = list(get_whitespace_indexes(splitted_text_with_punctuation, ''))
 
         # find the index of the first 'true' word of the story 
         def index_first_word_of_story(whitespace_indexes): 
@@ -340,11 +317,7 @@ class VoskModel():
                     if i and whitespace_indexes[i]-whitespace_indexes[i-1]!=1 and i+3<len(whitespace_indexes) and whitespace_indexes[i+3]-whitespace_indexes[i+2]!=1:
                         return i
   
-        index_first_word = whitespace_indexes[index_first_word_of_story(whitespace_indexes)]
-        how_much_got_removed = index_first_word - 1 # teoretic ar tb sa fie index_first_word - eliminate_leading_whitespaces(splitted_text_with_punctuation)
-        splitted_text = splitted_text_with_punctuation[(index_first_word+3):]
-
-        def get_splitted_clean_text():
+        def get_splitted_clean_text(splitted_text):
             index = 0
             while index<len(splitted_text):
                 if splitted_text[index].replace(" ", "") == "": 
@@ -352,12 +325,8 @@ class VoskModel():
                 else:
                     index+=1
             return splitted_text
-        splitted_clean_text = get_splitted_clean_text()
 
-        clean_story_text = ' '.join(splitted_clean_text)
-
-        print(how_much_got_removed)
-        print("The indexes of the clean shit:\n", [(value, count) for count, value in enumerate(splitted_clean_text)])
+        story_text = ' '.join(splitted_text_with_punctuation)
 
   
         # Step 3: Sentence Detection via spacy, store the sentences in a list; crate a dictionary with keys as sentence indexes and (start_index_of_sentence, end_index_of_sentence) as values
@@ -365,12 +334,11 @@ class VoskModel():
         def get_sentences(text):
             about_text = self.nlp(text) # text is a string including the whole screenshotted story, with the punctuation included
             return list(about_text.sents)
-        sentences = get_sentences( ' '.join(splitted_text_with_punctuation)) #get_sentences(clean_story_text)
-        #sentences = [sentence for sentence in sentences if not sentence.text.isspace()]
+        sentences = get_sentences(story_text)
   
         print("sentences\n:")
         for count, sentence in enumerate(sentences):
-            print("Sent number", count, " ", sentence, "\n")
+            print("Sentence number", count, " ", sentence, "\n")
 
         def get_dictio_sentences(phrases):
             sentence_metadata = dict()
@@ -410,19 +378,23 @@ class VoskModel():
                 print(long_substr_by_word(data)[1])
                 if max_length_similarity<long_substr_by_word(data)[1]:
                     max_length_similarity, detected_sentence = long_substr_by_word(data)[1], (sentence, ind_sentence)
+            if(detected_sentence == ''):
+                return -1
+           
             return detected_sentence
         # phrase_spoken = ' '.join(phrase_spoken)
-  
-        detected_sentence, index_sentence = belong_to_which_sentence(phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
-        
-        gpt3 = MetaverseGenerator(detected_sentence.text)
-        gpt3.retrieve_image_from_gpt3OpenAI()
+        if( belong_to_which_sentence(phrase_spoken, sentences) != -1):
 
-        print("The sentence to be highlighted: ", detected_sentence)
-        print(sentence_metadata[index_sentence][0] + how_much_got_removed, sentence_metadata[index_sentence][1] + how_much_got_removed)
-        self.highlight(sentence_metadata[index_sentence][0] + how_much_got_removed, sentence_metadata[index_sentence][1] + how_much_got_removed)
-        return 
-    
+            detected_sentence, index_sentence = belong_to_which_sentence(phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
+        
+            gpt3 = MetaverseGenerator(detected_sentence.text)
+            gpt3.retrieve_image_from_gpt3OpenAI()
+
+            print("The sentence to be highlighted: ", detected_sentence)
+            print(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
+            self.highlight(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
+        else:
+            print("Nothing to highlight in the story! Try reading something else!")
         
     
     ###################### HIGHLIGHT A SEQUENCE OF WORDS ##############################
@@ -485,8 +457,8 @@ class VoskModel():
             return [nltk.pos_tag(token) for token in tokens]
 
         sentences, tokens = tokenization_and_pos_tagging(text_with_punctuation)
+
         # The lexical richness metric shows us the percentage of distinct words in  the text
-        # print(tokens)
         def lexical_diversity(text): 
             return len(set(text)) / len(text) 
 
@@ -545,8 +517,8 @@ class VoskModel():
   
         subjects_and_objects = defaultdict(list) 
   
-        def extract_subjects_from_sents(self, sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
-            for sent_no, sentence in enumerate(sentences):
+        def extract_subjects_from_sents(sents): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
+            for sent_no, sentence in enumerate(sents):
                 sentence = self.nlp(sentence)
                 subjects = []
                 for token in sentence:
@@ -557,8 +529,8 @@ class VoskModel():
     
         extract_subjects_from_sents(sentences)
 
-        def extract_objects_from_sents(self, sentences): # redo it's copied
-            for sent_no, sentence in enumerate(sentences):
+        def extract_objects_from_sents(sents): # redo it's copied
+            for sent_no, sentence in enumerate(sents):
                 sentence = self.nlp(sentence)
                 objects = []
                 for token in sentence:

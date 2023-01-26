@@ -96,7 +96,7 @@ class ContextSync():
   
         subjects_and_objects = defaultdict(list) 
   
-        def extract_subjects_from_sents(sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
+        def extract_subjects_from_sents(self, sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
             for sent_no, sentence in enumerate(sentences):
                 sentence = self.nlp(sentence)
                 subjects = []
@@ -108,7 +108,7 @@ class ContextSync():
     
         extract_subjects_from_sents(sentences)
 
-        def extract_objects_from_sents(sentences): # redo it's copied
+        def extract_objects_from_sents(self, sentences): # redo it's copied
             for sent_no, sentence in enumerate(sentences):
                 sentence = self.nlp(sentence)
                 objects = []

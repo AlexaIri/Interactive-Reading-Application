@@ -6,6 +6,3 @@ readWithMe.karaoke_reading()
 
 #gpt3 = MetaverseGenerator("three children play in the backyard")
 #gpt3.retrieve_image_from_gpt3OpenAI()
-
- 
-
