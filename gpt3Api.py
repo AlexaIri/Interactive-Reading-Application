@@ -15,7 +15,7 @@ from base64 import b64decode
 from os import listdir
 from os.path import isfile, join
 
-class MetaverseGenerator():
+class ImageGenerator():
     # retrieve the authentication token associated with the OpenAI account of the developer 
     openai.api_key = auth_token_gpt3
 

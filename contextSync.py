@@ -6,7 +6,8 @@ import math
 from collections import defaultdict, Counter
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.text import Text
-from gpt3Api import MetaverseGenerator
+from gpt3Api import ImageGenerator
+
 
 
 
@@ -21,7 +22,7 @@ class ContextSync():
     ######################## CONTEXT SYNC ALGORITHM #################################
 
 
-    def contextSync(text_with_punctuation):
+    def contextSync(self, text_with_punctuation):
         gpt_max_tokens = 1500
         '''
         Preprocess the text for a foundational step in information extraction, namely entity detection.
@@ -37,9 +38,11 @@ class ContextSync():
 
         sentences, tokens = tokenization_and_pos_tagging(text_with_punctuation)
         # The lexical richness metric shows us the percentage of distinct words in  the text
-        # print(tokens)
+        print(text_with_punctuation)
         def lexical_diversity(text): 
-            return len(set(text)) / len(text) 
+            if(len(text)):
+                return len(set(text)) / len(text) 
+            return 0
 
         lexical_diversity = lexical_diversity(text_with_punctuation)
         print(f'{format(lexical_diversity*100,".2f")}% unique words')
@@ -96,7 +99,7 @@ class ContextSync():
   
         subjects_and_objects = defaultdict(list) 
   
-        def extract_subjects_from_sents(self, sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
+        def extract_subjects_from_sents(sentences): # redo because it's copied fromhttps://subscription.packtpub.com/book/data/9781838987312/2/ch02lvl1sec16/extracting-subjects-and-objects-of-the-sentence
             for sent_no, sentence in enumerate(sentences):
                 sentence = self.nlp(sentence)
                 subjects = []
@@ -108,7 +111,7 @@ class ContextSync():
     
         extract_subjects_from_sents(sentences)
 
-        def extract_objects_from_sents(self, sentences): # redo it's copied
+        def extract_objects_from_sents(sentences): # redo it's copied
             for sent_no, sentence in enumerate(sentences):
                 sentence = self.nlp(sentence)
                 objects = []
@@ -150,7 +153,7 @@ class ContextSync():
         print("\nConcordance:\n", concordances)
 
         # Input text generator for the GPT3 Metaverse Algorithm
-        step = math.floor(threshold_to_input_to_gpt/(4*average_word_length))
+        step = math.floor(threshold_to_input_to_gpt/(3*average_word_length))
   
         for ind in range(0, len(sentences), step):
             start_ind_phrase = ind
@@ -168,6 +171,9 @@ class ContextSync():
             image_metadata = (start_ind_phrase, end_ind_phrase, keywords)
             print("Image metadata: ", image_metadata, '\n')
 
+            gpt3 = ImageGenerator(passage)
+            gpt3.retrieve_image_from_gpt3OpenAI()
+
 
             collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
             for collocation in collocations:
@@ -177,8 +183,8 @@ class ContextSync():
 
             if(coll_score>=30):
                 print(f"The collocation strength score ({coll_score}) showcases a meaningful text excerpt. The GPT3 images can be generated successfully!\n")
-                # call GPT3
+                 
             else:
                 print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
-                # call GPT3
+             
 

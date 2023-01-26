@@ -19,8 +19,7 @@ import cv2
 import spacy
 from itertools import islice
 import nltk
-from gpt3Api import MetaverseGenerator
-import spacy
+from gpt3Api import ImageGenerator
 import nltk, re
 from nltk.collocations import *
 from pathlib import Path
@@ -29,6 +28,7 @@ from collections import defaultdict, Counter
 from nltk.tokenize import word_tokenize
 from nltk.text import Text
 from wordSync import WordSync
+from phraseSync import PhraseSync
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
@@ -114,21 +114,17 @@ class VoskModel():
     
       
         indexes = eliminate_miscellaneous_chars(splitted_text_with_punctuation)
-        print(" abebfhnewufgewklfe", indexes)
         self.delete_from_text(indexes, splitted_text_with_punctuation)
-        return indexes
-        #clean_story_text = ' '.join(splitted_clean_text)
-  
+        return indexes  
 
 
     ################### KARAOKE READING #######################
-    
-
     def karaoke_reading(self): 
         rec,samplerate = self.setUp()
         try: 
 
             with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None, dtype='int16', channels=1, callback=self._callback):
+                initial = time.perf_counter()
                 img = pyautogui.screenshot()
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
@@ -149,7 +145,7 @@ class VoskModel():
 
                 input_text_for_sync = data['text']
                 contiguous_text = ' '.join(input_text_for_sync)
-                self.contextSync(contiguous_text)
+                #self.contextSync(contiguous_text)
                 sentences = self.get_sentences(contiguous_text)
                 first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = sentences[0], sentences[-1]
                 
@@ -157,37 +153,39 @@ class VoskModel():
                  
                 while True:
                     current_sentences = self.get_sentences(contiguous_text)
-                    print("first sent first ss\n", first_sentence_from_prev_screenshot)
-                    print("first sent current ss\n", current_sentences[0])
-                    if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
+                    time_of_latest_ss = time.perf_counter()
+                    #print("first sent first ss\n", first_sentence_from_prev_screenshot)
+                    #print("first sent current ss\n", current_sentences[0])
+                    #if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
+                    #if(time_of_latest_ss - initial > 300):
+                    #    img = pyautogui.screenshot()
+                    #    img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                        img = pyautogui.screenshot()
-                        img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
-
-                        words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
-                        #print("words generated from ss:", words)
-                        data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                        #print("data generated from ss:", data)
+                    #    words = pytesseract.image_to_string(img, lang="eng", config="--psm 6") #"eng" needs to be replaced by variable
+                    #    #print("words generated from ss:", words)
+                    #    data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+                    #    #print("data generated from ss:", data)
 
                         
-                        indexes_to_del = self.clean_text(data['text'])
+                    #    indexes_to_del = self.clean_text(data['text'])
 
-                        for key in data.keys():
-                            if key!='text':
-                                self.delete_from_text(indexes_to_del, data[key])
+                    #    for key in data.keys():
+                    #        if key!='text':
+                    #            self.delete_from_text(indexes_to_del, data[key])
 
-                        print("NEWWWWWWWWWW data generated from ss:", data)
+                    #    print("NEWWWWWWWWWW data generated from ss:", data)
                 
 
-                        input_text_for_sync = data['text']
-                        contiguous_text = ' '.join(input_text_for_sync)
-                        #self.contextSync(contiguous_text)
-                        sentences = self.get_sentences(contiguous_text)
+                    #    input_text_for_sync = data['text']
+                    #    contiguous_text = ' '.join(input_text_for_sync)
+                    #    #self.contextSync(contiguous_text)
+                    #    sentences = self.get_sentences(contiguous_text)
 
-                        self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                    #    self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
                         
-                        first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = current_sentences[0], current_sentences[-1]
-                     #MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
+                    #    first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = current_sentences[0], current_sentences[-1]
+                    #    initial = time_of_latest_ss
+                    #MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
                     data = self.q.get()
                     if rec.AcceptWaveform(data):
                         d = json.loads(rec.Result())
@@ -201,6 +199,7 @@ class VoskModel():
                                     #WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync, self.co_ord_list).word_sync()
                                     #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
                                     self.phrase_sync(d, input_text_for_sync)
+                                    #PhraseSync(d, input_text_for_sync).phrase_sync()
 
                               
                                 if d[key] == self.safety_word : return
@@ -387,8 +386,8 @@ class VoskModel():
 
             detected_sentence, index_sentence = belong_to_which_sentence(phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
         
-            gpt3 = MetaverseGenerator(detected_sentence.text)
-            gpt3.retrieve_image_from_gpt3OpenAI()
+            #gpt3 = MetaverseGenerator(detected_sentence.text)
+            #gpt3.retrieve_image_from_gpt3OpenAI()
 
             print("The sentence to be highlighted: ", detected_sentence)
             print(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
@@ -589,6 +588,8 @@ class VoskModel():
             image_metadata = (start_ind_phrase, end_ind_phrase, keywords)
             print("Image metadata: ", image_metadata, '\n')
 
+            gpt3 = ImageGenerator(passage)
+            gpt3.retrieve_image_from_gpt3OpenAI()
 
             collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
             for collocation in collocations:
