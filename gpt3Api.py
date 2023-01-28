@@ -42,7 +42,8 @@ class ImageGenerator():
         self.image_dir.mkdir(parents=True, exist_ok=True)
 
     def encode_images_to_json(self, prompt, response):
-        file_name = self.data_dir / f"{prompt[:15]}-{response['created']}.json"
+        
+        file_name = self.data_dir / f"{self.get_index(self.data_dir)}-{response['created']}.json"
         with open(file_name, mode="w", encoding="utf-8") as file:
             json.dump(response, file)
         return response, file_name #, image_unique_id
@@ -63,6 +64,10 @@ class ImageGenerator():
 
             with open(image_file, mode="wb") as png:
                 png.write(image_data)
+
+    def get_index(self, dir):
+        return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
+
 
 
     def retrieve_image_from_gpt3OpenAI(self):
