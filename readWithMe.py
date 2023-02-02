@@ -7,11 +7,12 @@ class ReadWithMe:
         self.finalModel = VoskModel(self.lang, model_path)
 
   
-    def karaoke_reading(self):
-        self.finalModel.karaoke_reading()
+    def karaoke_reading_by_words(self):
+        self.finalModel.karaoke_reading("word_sync")
         
-    def word_sync(self):
-        self.finalModel.word_sync()
+    def karaoke_reading_by_phrases(self):
+        self.finalModel.word_sync("phrase_sync")
 
-    def phrase_sync(self):
-        self.finalModel.phrase_sync()
+    def karaoke_reading_by_context(self):
+        self.finalModel.word_sync("context_sync")
+

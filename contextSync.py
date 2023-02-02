@@ -39,8 +39,6 @@ class ContextSync():
             def pos_tagging(tokens):
                 return [nltk.pos_tag(token) for token in tokens]
 
-            print("tetxtttxt", text_with_punctuation)
-
             sentences, tokens = tokenization_and_pos_tagging(text_with_punctuation)
             # The lexical richness metric shows us the percentage of distinct words in  the text
             def lexical_diversity(text): 
@@ -84,7 +82,7 @@ class ContextSync():
                 # Determine the most frequently utilised nouns 
                 frequent_nouns = set()
                 pos_tagging_tokens = pos_tagging(tokens)
-                for sent_no, splitted_words in enumerate(pos_tagging_tokens):
+                for splitted_words in pos_tagging_tokens:
                     for token in splitted_words:
                         if token[1] in ['NN', 'NNS'] and word_frequency[token[0]]>=2:
                             frequent_nouns.add(token[0])
@@ -156,7 +154,6 @@ class ContextSync():
 
                 # Input text generator for the GPT3 Metaverse Algorithm
                 step = math.floor(threshold_to_input_to_gpt/(3*average_word_length))
-  
                 for ind in range(0, len(sentences), step):
                     start_ind_phrase = ind
                     coll_score = 0 
@@ -164,7 +161,7 @@ class ContextSync():
                         end_ind_phrase = start_ind_phrase + len(sentences) % step
                     else:
                         end_ind_phrase = start_ind_phrase + step - 1
-                    passage = ' '.join(sentences[start_ind_phrase:end_ind_phrase])
+                    passage = ' '.join(sentences[start_ind_phrase:end_ind_phrase]) 
                     print("The excerpt to be fed into the GPT3 Algorithm is: \n", passage, '\n')
 
                     # Find keywords for image metadata
@@ -173,20 +170,21 @@ class ContextSync():
                     image_metadata = (start_ind_phrase, end_ind_phrase, keywords)
                     print("Image metadata: ", image_metadata, '\n')
 
-                    gpt3 = ImageGenerator(passage)
-                    gpt3.retrieve_image_from_gpt3OpenAI()
+                    #gpt3 = ImageGenerator(passage)
+                    #gpt3.retrieve_image_from_gpt3OpenAI()
 
+                    try:
+                        collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
+                        for collocation in collocations:
+                            if(collocated_text.find(collocation)>-1):
+                                coll_score += 1 
+                        coll_score *= 100/len(collocations)
 
-                    collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
-                    for collocation in collocations:
-                        if(collocated_text.find(collocation)>-1):
-                            coll_score += 1 
-                    coll_score *= 100/len(collocations)
-
-                    if(coll_score>=30):
-                        print(f"The collocation strength score ({coll_score}) showcases a meaningful text excerpt. The GPT3 images can be generated successfully!\n")
+                        if(coll_score>=30):
+                            print(f"The collocation strength score ({coll_score}) showcases a meaningful text excerpt. The GPT3 images can be generated successfully!\n")
                  
-                    else:
-                        print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
-             
+                        else:
+                            print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
+                    except:
+                        print("Exception thrown when determining collocations and concordances")
 

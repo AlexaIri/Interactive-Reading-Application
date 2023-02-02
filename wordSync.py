@@ -1,4 +1,3 @@
-import imghdr
 import cv2
 
 class WordSync():
@@ -7,6 +6,7 @@ class WordSync():
         self.phrase_spoken = phrase_spoken
         self.input_text_for_sync = input_text_for_sync
         self.co_ord_list = co_ord_list
+
     ######################## WORD SYNC ALGORITHM #################################
 
 
@@ -14,12 +14,11 @@ class WordSync():
 
         self.phrase_spoken = self.phrase_spoken['text'].split()
         self.input_text_for_sync = ' '.join(self.input_text_for_sync).lower().split() 
-        print("brfrg", self.input_text_for_sync)
         
         cleaned_list_of_words = [s.replace("?","").replace(",","").replace(".","").replace('"','').replace("!","").replace(":","").replace(";","") for s in self.input_text_for_sync]
         
         print("FINAL indexes associated with each word from ss:\n", [(value, count) for count, value in enumerate(cleaned_list_of_words)])
-        print("we are comparing the phrase you just said:", self.phrase_spoken)
+        print("Comparing the spoken phrase:", self.phrase_spoken)
         
         matched_indexes_of_words = []
         indexes_of_correctly_pronounced_words = [] 
@@ -34,8 +33,7 @@ class WordSync():
         print("first and last index:", first, last, '\n')
 
         if first!= -1:
-            print("WHAT YOU JUST READ")
-            print("this will be highlited from FIRST to LAST:" + " ".join(self.input_text_for_sync[first:last]))
+            print("The portion to be highlited in the story:" + " ".join(self.input_text_for_sync[first:last]))
             #self.highlight(first, last-1) 
             self.box_words(first, last-1, indexes_of_correctly_pronounced_words) 
             

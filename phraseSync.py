@@ -5,8 +5,8 @@ from nltk.collocations import *
 import spacy
 
 class PhraseSync():
-    def __init__(self, phrase_spoken, splitted_text_with_punctuation):
-        self.co_ord_list = []
+    def __init__(self, phrase_spoken, splitted_text_with_punctuation, co_ord_list):
+        self.co_ord_list = co_ord_list
         self.splitted_text_with_punctuation = splitted_text_with_punctuation
         self.phrase_spoken = phrase_spoken
         self.nlp = spacy.load("en_core_web_sm")

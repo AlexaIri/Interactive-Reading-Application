@@ -1,4 +1,3 @@
-from cmd import PROMPT
 from fileinput import filename
 from http.client import responses
 from typing_extensions import Self
@@ -15,6 +14,7 @@ from base64 import b64decode
 from os import listdir
 from os.path import isfile, join
 
+
 class ImageGenerator():
     # retrieve the authentication token associated with the OpenAI account of the developer 
     openai.api_key = auth_token_gpt3
@@ -23,8 +23,6 @@ class ImageGenerator():
         #self.image_metadata = image_metadata
         self.app = tk.Tk()
         self.app.geometry("532x632")
-        self.app.title("dalle")
-        #ctk.set_appearence_mode("dark")
 
         self.text_prompt = text_prompt
 
@@ -34,39 +32,37 @@ class ImageGenerator():
         self.prompt_input = ctk.CTkEntry(master = self.app, height = 40, width = 512 )
         self.prompt_input.place(x=10, y=10)
 
-        self.data_dir = Path.cwd() / "json_image_filestore"
-        print(self.data_dir)
-        self.data_dir.mkdir(exist_ok=True)
+        self.json_data_dir = Path.cwd() / "json_image_filestore"
+        self.json_data_dir.mkdir(exist_ok=True)
         
-        self.image_dir = Path.cwd() / "png_image_filestore" 
-        self.image_dir.mkdir(parents=True, exist_ok=True)
-
-    def encode_images_to_json(self, prompt, response):
+        self.png_data_dir = Path.cwd() / "png_image_filestore" 
+        self.png_data_dir.mkdir(parents=True, exist_ok=True)
         
-        file_name = self.data_dir / f"{self.get_index(self.data_dir)}-{response['created']}.json"
-        with open(file_name, mode="w", encoding="utf-8") as file:
-            json.dump(response, file)
-        return response, file_name #, image_unique_id
-
-    def decode_image_from_json(self, json_filename):
-        #last_generated_file = [f for f in listdir(data_dir) if isfile(join(data_dir, f))][-1]
-        #print(last_generated_file)
-        #for file in onlyfiles:
-        json_file = self.data_dir / json_filename
-        with open(json_file, mode="r", encoding="utf-8") as file:
-            response = json.load(file)
-
-
-        for index, image_dict in enumerate(response["data"]):
-
-            image_data = b64decode(image_dict["b64_json"])
-            image_file = self.image_dir / f"{json_file.stem}-{index}.png"
-
-            with open(image_file, mode="wb") as png:
-                png.write(image_data)
 
     def get_index(self, dir):
         return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
+
+    def encode_images_to_json(self, response):
+
+        file_name = self.json_data_dir / f"{self.get_index(self.json_data_dir)}-json.json"
+        with open(file_name, mode="w", encoding="utf-8") as file:
+            json.dump(response, file)
+        return file_name 
+
+    def decode_image_from_json(self, json_file):
+        subfolder = self.png_data_dir / f"{json_file.stem}-subfolder"
+        subfolder.mkdir(parents=True, exist_ok=True)
+
+        with open(json_file, mode="r", encoding="utf-8") as file:
+            response = json.load(file)
+            
+        for index, image in enumerate(response["data"]): 
+
+            image_data = b64decode(image["b64_json"])
+            image_file = subfolder / f"Image-{index}-{response['created']}.png"
+
+            with open(image_file, mode="wb") as png:
+                png.write(image_data)
 
 
 
@@ -74,22 +70,23 @@ class ImageGenerator():
         global tk_img
         global img
         #text_prompt = self.prompt_input.get()
-        response = openai.Image.create(prompt = self.text_prompt,
-                                       n = 1, 
-                                       size ="512x512",
-                                       response_format="b64_json",
-                                       )
-        print(type(response))
-        # append to response additional info as json: self.image_metadata 
-        #image_url = response["data"][1]["url"]
-        #img = Image.open(requests.get(image_url, stream = True).raw)
-        #tk_img = ImageTk.PhotoImage(img)
-        #main_image.create_image(0, 0, anchor = tk.NW, image = tk_img)
-        #image_unique_id = f"{prompt[:5]}-{response['created']}"
-        # ADD IMAGE_METADATA IN THAT JSON: the whole passage text from which it was generated, 
-        #the start and end indexes of it, the indexes of the phrases it contains 
-        _, file_name = self.encode_images_to_json(self.text_prompt, response)
-        self.decode_image_from_json(file_name)
+        try:
+            response = openai.Image.create(prompt = self.text_prompt,
+                                           n = 6, 
+                                           size ="512x512",
+                                           response_format="b64_json",
+                                           )
+
+            #image_url = response["data"][1]["url"]
+            #img = Image.open(requests.get(image_url, stream = True).raw)
+            #tk_img = ImageTk.PhotoImage(img)
+            #main_image.create_image(0, 0, anchor = tk.NW, image = tk_img)
+            
+            file = self.encode_images_to_json(response)
+            self.decode_image_from_json(file)
+        except:
+            print("Exception thrown due to text prompt violating the OpenAI safety guidelines")
+
 
     def save_image_as_pngs(self):
     
@@ -113,5 +110,3 @@ class ImageGenerator():
         save_button.place(x=266, y = 60)
 
         self.app.mainloop()
-
-
