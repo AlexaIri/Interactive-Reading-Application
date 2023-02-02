@@ -18,15 +18,14 @@ class MetaverseGenerator():
     def extract_text(self):
 
         with fitz.open(self.pdf) as doc:
-            text = "pleasure"
-            page = doc[0]
-            text_instances = page.search_for(text)
+            #    text = "pleasure"
+            #    text_instances = page.search_for(text)
 
-            for inst in text_instances:
-                highlight = page.add_highlight_annot(inst)
-                #highlight.set_colors({"stroke":(0, 0, 1), "fill":(0.75, 0.8, 0.95)})
-                highlight.update()
-
+            #    for inst in text_instances:
+            #        highlight = page.add_highlight_annot(inst)
+            #        #highlight.set_colors({"stroke":(0, 0, 1), "fill":(0.75, 0.8, 0.95)})
+            #        highlight.update()
+            # print(page.get_text("words"))
 
             story_text = ''
             for page in doc:
@@ -35,17 +34,20 @@ class MetaverseGenerator():
             story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
             story_text = self.clean_text(story_text)
 
+            chapter_no = -1 
             while(story_text.find('Chapter')!=-1):
                 chapter = story_text[:story_text.find('Chapter')]
+                chapter_no += 1
                 #print("Start of a new chapter\n\n", chapter, '\n')
                 story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
                 
                 # Generate Metaverse and Proceed with the Context Analyis
-                #self.sync.contextSync(chapter)
+                self.sync.contextSyncForMetaverse(chapter, chapter_no)
+               
 
-            # Last chapter 
-            #print("Last chapter\n", story_text)
-            #self.sync.contextSync(story_text)
+             # Last chapter 
+            print("Last chapter\n", story_text)
+            self.sync.contextSyncForMetaverse(story_text, chapter_no+1)
 
             
        

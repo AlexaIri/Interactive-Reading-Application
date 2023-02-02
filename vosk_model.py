@@ -29,6 +29,7 @@ from nltk.tokenize import word_tokenize
 from nltk.text import Text
 from wordSync import WordSync
 from phraseSync import PhraseSync
+from contextSync import ContextSync
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
@@ -202,7 +203,8 @@ class VoskModel():
                                     elif sync_algorithm == "phrase_sync":
                                         #self.phrase_sync(my_data, input_text_for_sync)
                                         PhraseSync(my_data, input_text_for_sync, self.co_ord_list).phrase_sync()
-                                    
+                                    else:
+                                        ContextSync().contextSync(my_data)
                                     
                                 if my_data[key] == self.safety_word : return
                                 self.previous_line = my_data[key]

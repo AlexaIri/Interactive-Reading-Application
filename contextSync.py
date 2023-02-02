@@ -7,9 +7,8 @@ from collections import defaultdict, Counter
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.text import Text
 from gpt3Api import ImageGenerator
-
-
-
+import json
+import os
 
 class ContextSync():
     def __init__(self):
@@ -18,11 +17,18 @@ class ContextSync():
         nltk.download('averaged_perceptron_tagger')
         nltk.download('stopwords')
 
+        self.json_data_dir = Path.cwd() / "json_image_filestore"
+        self.metamama = Path.cwd() / "metamama"
+        self.metamama.mkdir(parents=True, exist_ok=True)
+
 
     ######################## CONTEXT SYNC ALGORITHM #################################
 
+    def get_index(self, dir):
+        return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
 
-    def contextSync(self, text_with_punctuation):
+
+    def contextSyncForMetaverse(self, text_with_punctuation, chapter):
         gpt_max_tokens = 1500
         
         '''
@@ -155,6 +161,7 @@ class ContextSync():
                 # Input text generator for the GPT3 Metaverse Algorithm
                 step = math.floor(threshold_to_input_to_gpt/(3*average_word_length))
                 for ind in range(0, len(sentences), step):
+                    
                     start_ind_phrase = ind
                     coll_score = 0 
                     if(ind+step>len(sentences)):
@@ -165,15 +172,38 @@ class ContextSync():
                     print("The excerpt to be fed into the GPT3 Algorithm is: \n", passage, '\n')
 
                     # Find keywords for image metadata
-                    keywords = set(word for word in frequent_nouns if(passage.find(word))!=-1)
+                    keywords = list(word for word in frequent_nouns if(passage.find(word))!=-1)
 
-                    image_metadata = (start_ind_phrase, end_ind_phrase, keywords)
+                    image_metadata = (start_ind_phrase, end_ind_phrase, keywords, chapter)
                     print("Image metadata: ", image_metadata, '\n')
 
-                    #gpt3 = ImageGenerator(passage)
+                    for ind, json_F in enumerate(os.listdir(self.json_data_dir)):
+                        meta_fil = self.metamama/os.listdir(self.metamama)[ind]
+                        with open(meta_fil, "r",  encoding="utf-8") as file_name:
+                            meta = json.load(file_name)
+
+
+                        with open(self.json_data_dir/json_F, "w") as file_name:
+                            json.dump(dict(meta), file_name)
+                    #response = dict(start_ind_phrase = start_ind_phrase, end_ind_phrase = end_ind_phrase, keywords = keywords, chapter = chapter)
+                           
+
+                    #file_name = self.metamama / f"{self.get_index(self.metamama)}-meta.json"
+                    #print(file_name)
+                    ## Populate the json with the serialised imahge
+                    #with open(file_name, mode="w", encoding="utf-8") as file:
+                    #    json.dump(response, file)
+                    #with open(file_name, mode="r", encoding="utf-8") as file:
+                    #    json.load(file)
+
+
+
+
+
+                    #gpt3 = ImageGenerator(passage, image_metadata)
                     #gpt3.retrieve_image_from_gpt3OpenAI()
 
-                    try:
+                    try: 
                         collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
                         for collocation in collocations:
                             if(collocated_text.find(collocation)>-1):
@@ -188,3 +218,5 @@ class ContextSync():
                     except:
                         print("Exception thrown when determining collocations and concordances")
 
+    def contextSyncForReading(self, phrase_spoken):
+        phrase_spoken = phrase_spoken['text'].split()

@@ -19,8 +19,8 @@ class ImageGenerator():
     # retrieve the authentication token associated with the OpenAI account of the developer 
     openai.api_key = auth_token_gpt3
 
-    def __init__(self, text_prompt):
-        #self.image_metadata = image_metadata
+    def __init__(self, text_prompt, image_metadata):
+        self.start_ind_phrase, self.end_ind_phrase, self.keywords, self.chapter = image_metadata
         self.app = tk.Tk()
         self.app.geometry("532x632")
 
@@ -44,9 +44,13 @@ class ImageGenerator():
 
     def encode_images_to_json(self, response):
 
+        # Declare the json file path name
         file_name = self.json_data_dir / f"{self.get_index(self.json_data_dir)}-json.json"
+        
+        # Populate the json with the serialised imahge
         with open(file_name, mode="w", encoding="utf-8") as file:
             json.dump(response, file)
+
         return file_name 
 
     def decode_image_from_json(self, json_file):
@@ -64,7 +68,17 @@ class ImageGenerator():
             with open(image_file, mode="wb") as png:
                 png.write(image_data)
 
+    def update_jsons(self, json_file):
+        with open(json_file, "r",  encoding="utf-8") as file_name:
+            data = json.load(file_name)
 
+        data['start_ind_phrase']= self.start_ind_phrase
+        data['end_ind_phrase'] = self.end_ind_phrase
+        data['keywords']= self.keywords
+        data['chapter'] = self.chapter
+
+        with open(json_file, "w") as file_name:
+            json.dump(data, file_name)
 
     def retrieve_image_from_gpt3OpenAI(self):
         global tk_img
@@ -81,9 +95,16 @@ class ImageGenerator():
             #img = Image.open(requests.get(image_url, stream = True).raw)
             #tk_img = ImageTk.PhotoImage(img)
             #main_image.create_image(0, 0, anchor = tk.NW, image = tk_img)
+
+            # Append image metadata to response
+            response['start_ind_phrase']= self.start_ind_phrase
+            response['end_ind_phrase'] = self.end_ind_phrase
+            response['keywords']= self.keywords
+            response['chapter'] = self.chapter
             
             file = self.encode_images_to_json(response)
             self.decode_image_from_json(file)
+            
         except:
             print("Exception thrown due to text prompt violating the OpenAI safety guidelines")
 
