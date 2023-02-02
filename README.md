@@ -1,1 +1,1 @@
-# Interactive_Reading_App_with_MotionInput
+# Interactive Reading Application with MotionInput
