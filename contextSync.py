@@ -9,6 +9,9 @@ from nltk.text import Text
 from gpt3Api import ImageGenerator
 import json
 import os
+import sys
+import cv2
+from PIL import Image
 
 class ContextSync():
     def __init__(self):
@@ -28,7 +31,7 @@ class ContextSync():
         return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
 
 
-    def contextSyncForMetaverse(self, text_with_punctuation, chapter):
+    def contextSyncForMetaverse(self, text_with_punctuation, page_no):
         gpt_max_tokens = 1500
         
         '''
@@ -174,17 +177,17 @@ class ContextSync():
                     # Find keywords for image metadata
                     keywords = list(word for word in frequent_nouns if(passage.find(word))!=-1)
 
-                    image_metadata = (start_ind_phrase, end_ind_phrase, keywords, chapter)
+                    image_metadata = (start_ind_phrase, end_ind_phrase, keywords, page_no)
                     print("Image metadata: ", image_metadata, '\n')
 
-                    for ind, json_F in enumerate(os.listdir(self.json_data_dir)):
-                        meta_fil = self.metamama/os.listdir(self.metamama)[ind]
-                        with open(meta_fil, "r",  encoding="utf-8") as file_name:
-                            meta = json.load(file_name)
+                    #for ind, json_F in enumerate(os.listdir(self.json_data_dir)):
+                    #    meta_fil = self.metamama/os.listdir(self.metamama)[ind]
+                    #    with open(meta_fil, "r",  encoding="utf-8") as file_name:
+                    #        meta = json.load(file_name)
 
 
-                        with open(self.json_data_dir/json_F, "w") as file_name:
-                            json.dump(dict(meta), file_name)
+                    #    with open(self.json_data_dir/json_F, "w") as file_name:
+                    #        json.dump(dict(meta), file_name)
                     #response = dict(start_ind_phrase = start_ind_phrase, end_ind_phrase = end_ind_phrase, keywords = keywords, chapter = chapter)
                            
 
@@ -196,12 +199,9 @@ class ContextSync():
                     #with open(file_name, mode="r", encoding="utf-8") as file:
                     #    json.load(file)
 
-
-
-
-
-                    #gpt3 = ImageGenerator(passage, image_metadata)
-                    #gpt3.retrieve_image_from_gpt3OpenAI()
+                    
+                    gpt3 = ImageGenerator(passage, image_metadata)
+                    gpt3.retrieve_image_from_gpt3OpenAI()
 
                     try: 
                         collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
@@ -217,6 +217,3 @@ class ContextSync():
                             print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
                     except:
                         print("Exception thrown when determining collocations and concordances")
-
-    def contextSyncForReading(self, phrase_spoken):
-        phrase_spoken = phrase_spoken['text'].split()

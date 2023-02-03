@@ -20,7 +20,7 @@ class ImageGenerator():
     openai.api_key = auth_token_gpt3
 
     def __init__(self, text_prompt, image_metadata):
-        self.start_ind_phrase, self.end_ind_phrase, self.keywords, self.chapter = image_metadata
+        self.start_ind_phrase, self.end_ind_phrase, self.keywords, self.page = image_metadata
         self.app = tk.Tk()
         self.app.geometry("532x632")
 
@@ -75,7 +75,7 @@ class ImageGenerator():
         data['start_ind_phrase']= self.start_ind_phrase
         data['end_ind_phrase'] = self.end_ind_phrase
         data['keywords']= self.keywords
-        data['chapter'] = self.chapter
+        data['page'] = self.page
 
         with open(json_file, "w") as file_name:
             json.dump(data, file_name)
@@ -100,7 +100,7 @@ class ImageGenerator():
             response['start_ind_phrase']= self.start_ind_phrase
             response['end_ind_phrase'] = self.end_ind_phrase
             response['keywords']= self.keywords
-            response['chapter'] = self.chapter
+            response['page'] = self.page
             
             file = self.encode_images_to_json(response)
             self.decode_image_from_json(file)

@@ -11,8 +11,8 @@ class ReadWithMe:
         self.finalModel.karaoke_reading("word_sync")
         
     def karaoke_reading_by_phrases(self):
-        self.finalModel.word_sync("phrase_sync")
+        self.finalModel.karaoke_reading("phrase_sync")
 
     def karaoke_reading_by_context(self):
-        self.finalModel.word_sync("context_sync")
+        self.finalModel.karaoke_reading("context_sync")
 

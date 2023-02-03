@@ -5,16 +5,14 @@ from nltk.collocations import *
 import spacy
 
 class PhraseSync():
-    def __init__(self, phrase_spoken, splitted_text_with_punctuation, co_ord_list):
-        self.co_ord_list = co_ord_list
-        self.splitted_text_with_punctuation = splitted_text_with_punctuation
+    def __init__(self, phrase_spoken):
         self.phrase_spoken = phrase_spoken
         self.nlp = spacy.load("en_core_web_sm")
 
 
     ######################## PHRASE SYNC ALGORITHM #################################
 
-    def phrase_sync(self):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
+    def phrase_sync(self, splitted_text_with_punctuation, co_ord_list):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
                                                                            # to where it ends which is where the punctuation mark is ('.!?;:')
         self.phrase_spoken = self.phrase_spoken['text']
         print("phrase spoken\n", self.phrase_spoken)
@@ -46,7 +44,7 @@ class PhraseSync():
                     index+=1
             return splitted_text
 
-        story_text = ' '.join(self.splitted_text_with_punctuation)
+        story_text = ' '.join(splitted_text_with_punctuation)
 
   
         # Step 3: Sentence Detection via spacy, store the sentences in a list; crate a dictionary with keys as sentence indexes and (start_index_of_sentence, end_index_of_sentence) as values
@@ -106,28 +104,28 @@ class PhraseSync():
 
             detected_sentence, index_sentence = belong_to_which_sentence(self.phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
         
-            gpt3 = ImageGenerator(detected_sentence.text)
-            gpt3.retrieve_image_from_gpt3OpenAI()
-
             print("The sentence to be highlighted: ", detected_sentence)
             print(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
-            self.highlight(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
+            self.highlight(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1], co_ord_list)
+            return detected_sentence, index_sentence 
         else:
             print("Nothing to highlight in the story! Try reading something else!")
-    
+            
+        
     
     ###################### HIGHLIGHT A SEQUENCE OF WORDS ##############################
 
 
-    def highlight(self, first_word_index, last_word_index):
-        listuta = [(value, count) for count, value in enumerate(self.co_ord_list)]
-        print("vreau sa vad\n", listuta)
-        print("THE HIGHLIGHTING STARTS")
-        pyautogui.moveTo(self.co_ord_list[first_word_index][1], self.co_ord_list[first_word_index][2], duration = 0.1)
+    def highlight(self, first_word_index, last_word_index, co_ord_list):
+        #word_placement = [(value, count) for count, value in enumerate(self.co_ord_list)]
+        #print("Word placement on page:\n", word_placement)
+        print("The highlighting on page starts\n")
+        pyautogui.click()
+        pyautogui.moveTo(co_ord_list[first_word_index][1], co_ord_list[first_word_index][2])
         pyautogui.click()
         pyautogui.keyDown('shift') # press the key
         pyautogui.keyDown('ctrl')
-        pyautogui.dragTo(self.co_ord_list[last_word_index][1]+self.co_ord_list[last_word_index][3], 
-            self.co_ord_list[last_word_index][2]+self.co_ord_list[last_word_index][4], duration = 0.3)
+        pyautogui.dragTo(co_ord_list[last_word_index][1]+co_ord_list[last_word_index][3], 
+            co_ord_list[last_word_index][2]+co_ord_list[last_word_index][4])
         pyautogui.keyUp('shift') # release the key
         pyautogui.keyUp('ctrl')
