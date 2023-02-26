@@ -1,6 +1,6 @@
 from vosk_model import VoskModel
 
-class ReadWithMe:
+class ReadWithMe: #kita
     def __init__(self, lang, model, model_path):
         self.lang = lang
         self.model = model

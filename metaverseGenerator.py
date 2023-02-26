@@ -11,6 +11,7 @@ import os
 import json
 from PIL import Image
 from pathlib import Path
+import sys
 
 class MetaverseGenerator():
     def __init__(self, pdf_url):
@@ -130,35 +131,38 @@ class MetaverseGenerator():
         #self.sync.contextSync(contiguous_text)
 
     def read_json(self, target_page, target_phrase_ind):
-                print(os.listdir(self.png_data_dir)[0])
-                for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)): # binary search
-                    with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
-                        data = json.load(file_name)
-                    if data['page'] == target_page:
-                        if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
-                            png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
-                            image = os.listdir(self.png_data_dir/png_subfolder)[0]
-                            print(ind_json_file, image)
-                            img = Image.open(self.png_data_dir/png_subfolder/image)
-                            img.show()
-                            cv2.waitKey(0)
-                            #sys.exit() # to exit from all the processes
+        print(os.listdir(self.png_data_dir)[0])
+        for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
+            with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
+                data = json.load(file_name)
+            if data['page'] == target_page:
+                if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
+                    png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
+                    image = os.listdir(self.png_data_dir/png_subfolder)[0]
+                    print(ind_json_file, image)
+                    
+                    img = Image.open(self.png_data_dir/png_subfolder/image)
+                    img.show()
+                    img.close()
 
 
-    def contextSyncForReading(self, phrase_spoken):
-        img = pyautogui.screenshot()
-        img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+    def contextSyncForReading(self, phrase_spoken, input_text_for_sync, co_ord_list):
+        #img = pyautogui.screenshot()
+        #img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
                 
-        data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-        indexes_to_del = self.process_text(data['text'])
+        #data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+        #indexes_to_del = self.process_text(data['text'])
 
-        for key in data.keys():
-            if key!='text':
-                self.delete_from_text(indexes_to_del, data[key])
+        #for key in data.keys():
+        #    if key!='text':
+        #        self.delete_from_text(indexes_to_del, data[key])
                             
-        input_text_for_sync = data['text']
-        co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+        #input_text_for_sync = data['text']
+        #co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
         print(phrase_spoken)
-        _, index_sentence = PhraseSync(phrase_spoken).phrase_sync(input_text_for_sync, co_ord_list)
-        self.read_json(0, index_sentence)
+        try:
+            _, index_sentence = PhraseSync(phrase_spoken).phrase_sync(input_text_for_sync, co_ord_list)
+            self.read_json(0, index_sentence)
+        except:
+            print("Keep reading to see the metaverse!")
             
