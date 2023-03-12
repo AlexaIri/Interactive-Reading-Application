@@ -130,7 +130,7 @@ class VoskModel():
                 img = pyautogui.screenshot()
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                words = pytesseract.image_to_string(img, lang="eng", config="--psm 6")
+                #words = pytesseract.image_to_string(img, lang="eng", config="--psm 6")
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
                 print("data generated from ss:", data)
 
@@ -141,21 +141,15 @@ class VoskModel():
                         self.delete_from_text(indexes_to_del, data[key])
 
                 print("NEWWWWWWWWWW data generated from ss:", data)
-                
 
                 input_text_for_sync = data['text']
-                contiguous_text = ' '.join(input_text_for_sync)
+                #contiguous_text = ' '.join(input_text_for_sync)
                 #self.contextSync(contiguous_text)
-                sentences = self.get_sentences(contiguous_text)
-                first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = sentences[0], sentences[-1]
                 
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
                  
                 while True:
-                    current_sentences = self.get_sentences(contiguous_text)
                     time_of_latest_ss = time.perf_counter()
-                    #print("first sent first ss\n", first_sentence_from_prev_screenshot)
-                    #print("first sent current ss\n", current_sentences[0])
                     #if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
                     #if(time_of_latest_ss - time_of_prev_ss > 30):
                     #    img = pyautogui.screenshot()
@@ -164,7 +158,6 @@ class VoskModel():
                     #    data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
                     #    #print("data generated from ss:", data)
 
-                        
                     #    indexes_to_del = self.clean_text(data['text'])
 
                     #    for key in data.keys():
@@ -199,6 +192,7 @@ class VoskModel():
                                     elif sync_algorithm == "phrase_sync":
                                         #self.phrase_sync(my_data, input_text_for_sync)
                                         PhraseSync(my_data).phrase_sync(input_text_for_sync, self.co_ord_list)
+
                                     else:
                                         MetaverseGenerator(r"C:\Users\Asus ZenBook\Desktop\UCL\Alice_removed.pdf").contextSyncForReading(my_data, input_text_for_sync, self.co_ord_list)
 

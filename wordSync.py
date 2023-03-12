@@ -33,7 +33,7 @@ class WordSync():
         print("first and last index:", first, last, '\n')
 
         if first!= -1:
-            print("The portion to be highlited in the story:" + " ".join(self.input_text_for_sync[first:last]))
+            print("The portion to be highlighted in the story:" + " ".join(self.input_text_for_sync[first:last]))
             #self.highlight(first, last-1) 
             self.box_words(first, last-1, indexes_of_correctly_pronounced_words) 
             
@@ -42,9 +42,7 @@ class WordSync():
         if len(list_of_indexes) == 0:
             return -1, -1
         if len(list_of_indexes) == 1:
-            if len(list_of_indexes[0])==1: 
-                #calculate beginning and end, and return to do this, need to know index of the current one, otherwise assume it is not enough
-                
+            if len(list_of_indexes[0])==1:                 
                 first = list_of_indexes[0][0] - corresponding_indexes[0]
                 last = first + length
                 return first, last
@@ -101,6 +99,3 @@ class WordSync():
                                 color=rgb_red, thickness=2) # add red box for wrong pronounciation 
         cv2.imshow('image', image)
         cv2.waitKey(10000) # change 0 to 60000 for the window to be deleted after 1 min = 60sec
-
-        
-

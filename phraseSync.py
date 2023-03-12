@@ -120,12 +120,13 @@ class PhraseSync():
         #word_placement = [(value, count) for count, value in enumerate(self.co_ord_list)]
         #print("Word placement on page:\n", word_placement)
         print("The highlighting on page starts\n")
-        pyautogui.click()
-        pyautogui.moveTo(co_ord_list[first_word_index][1], co_ord_list[first_word_index][2])
-        pyautogui.click()
+        #pyautogui.click()
+        pyautogui.click(x=co_ord_list[first_word_index][1], y=co_ord_list[first_word_index][2],  duration = 0.1)
+        #pyautogui.click()
         pyautogui.keyDown('shift') # press the key
         pyautogui.keyDown('ctrl')
-        pyautogui.dragTo(co_ord_list[last_word_index][1]+co_ord_list[last_word_index][3], 
-            co_ord_list[last_word_index][2]+co_ord_list[last_word_index][4])
+        pyautogui.dragTo(x=co_ord_list[last_word_index][1]+co_ord_list[last_word_index][3], 
+                         y=co_ord_list[last_word_index][2]+co_ord_list[last_word_index][4],  duration = 0.5)
+        pyautogui.click()
         pyautogui.keyUp('shift') # release the key
         pyautogui.keyUp('ctrl')
