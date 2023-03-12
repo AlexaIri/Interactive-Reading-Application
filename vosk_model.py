@@ -150,30 +150,25 @@ class VoskModel():
                  
                 while True:
                     time_of_latest_ss = time.perf_counter()
-                    #if (first_sentence_from_prev_screenshot != current_sentences[0] and last_sentence_from_prev_screenshot != current_sentences[-1]):
-                    #if(time_of_latest_ss - time_of_prev_ss > 30):
-                    #    img = pyautogui.screenshot()
-                    #    img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+                    if(time_of_latest_ss - time_of_prev_ss > 30):
+                        img = pyautogui.screenshot()
+                        img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                    #    data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                    #    #print("data generated from ss:", data)
+                        data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+                        #print("data generated from ss:", data)
 
-                    #    indexes_to_del = self.clean_text(data['text'])
+                        indexes_to_del = self.clean_text(data['text'])
 
-                    #    for key in data.keys():
-                    #        if key!='text':
-                    #            self.delete_from_text(indexes_to_del, data[key])
+                        for key in data.keys():
+                            if key!='text':
+                                self.delete_from_text(indexes_to_del, data[key])
 
-                    #    print("NEWWWWWWWWWW data generated from ss:", data)
+                        #print("NEWWWWWWWWWW data generated from ss:", data)
                 
-                    #    input_text_for_sync = data['text']
-                    #    contiguous_text = ' '.join(input_text_for_sync)
-                    #    sentences = self.get_sentences(contiguous_text)
-
-                    #    self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                        input_text_for_sync = data['text']
+                        self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
                         
-                    #    first_sentence_from_prev_screenshot, last_sentence_from_prev_screenshot = current_sentences[0], current_sentences[-1]
-                    #    time_of_prev_ss = time_of_latest_ss
+                        time_of_prev_ss = time_of_latest_ss
 
                     #MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
                     data = self.q.get()
