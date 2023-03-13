@@ -1,0 +1,7 @@
+{
+  "read_mode": {
+    "word_sync": false,
+    "phrase_sync": false,
+    "context_sync": true
+  }
+}
