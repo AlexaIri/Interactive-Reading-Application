@@ -24,12 +24,6 @@ class ImageGenerator():
         self.story_book_name = story_book_name
         self.text_prompt = text_prompt
 
-        #self.json_data_dir = Path.cwd() / "json_image_filestore"
-        #self.json_data_dir.mkdir(exist_ok=True)
-        
-        #self.png_data_dir = Path.cwd() / "png_image_filestore" 
-        #self.png_data_dir.mkdir(parents=True, exist_ok=True)
-
         self.json_dir = Path.cwd() / "JSON Images Filestore" 
         self.json_dir.mkdir(parents=True, exist_ok=True)
         self.json_data_dir = self.json_dir / self.story_book_name
@@ -44,6 +38,7 @@ class ImageGenerator():
     def get_index(self, dir):
         return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
 
+
     def encode_images_to_json(self, response):
 
         # Declare the json file path name
@@ -53,6 +48,7 @@ class ImageGenerator():
             json.dump(response, file)
 
         return file_name 
+
 
     def decode_image_from_json(self, json_file):
         subfolder = self.png_data_dir / f"{json_file.stem}-subfolder"
@@ -69,6 +65,7 @@ class ImageGenerator():
             with open(image_file, mode="wb") as png:
                 png.write(image_data)
 
+
     def update_jsons(self, json_file):
         with open(json_file, "r",  encoding="utf-8") as file_name:
             data = json.load(file_name)
@@ -80,6 +77,7 @@ class ImageGenerator():
 
         with open(json_file, "w") as file_name:
             json.dump(data, file_name)
+
 
     def retrieve_image_from_gpt3OpenAI(self):
         prompt = '"{}"'.format(self.text_prompt) + " digital art for children"

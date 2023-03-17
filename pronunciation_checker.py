@@ -1,16 +1,16 @@
 import cv2
 
-class WordSync():
+class PronunciationChecker():
     def __init__(self, img, phrase_spoken, input_text_for_sync, co_ord_list):
         self.img = img 
         self.phrase_spoken = phrase_spoken
         self.input_text_for_sync = input_text_for_sync
         self.co_ord_list = co_ord_list
 
-    ######################## WORD SYNC ALGORITHM #################################
+    ######################## PRONUNCIATION CHECKER ALGORITHM #################################
 
 
-    def word_sync(self):
+    def pronunciation_checker(self):
 
         self.phrase_spoken = self.phrase_spoken['text'].split()
         self.input_text_for_sync = ' '.join(self.input_text_for_sync).lower().split() 

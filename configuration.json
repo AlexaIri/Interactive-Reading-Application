@@ -1,7 +1,7 @@
 {
   "read_mode": {
-    "word_sync": false,
-    "phrase_sync": false,
+    "pronunciation_checker": false,
+    "reading_tracker": false,
     "context_sync": true
   },
   "next_page": 0, 

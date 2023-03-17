@@ -5,13 +5,16 @@ import pyautogui
 import pytesseract
 import cv2
 import nltk
-from phraseSync import PhraseSync
+from reading_tracker import ReadingTracker
 import json
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 import sys
 import subprocess
 import os
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
+import numpy as np
 
 
 class MetaverseGenerator():
@@ -103,18 +106,28 @@ class MetaverseGenerator():
 
     def read_image_json(self, target_page, target_phrase_ind):
         print(os.listdir(self.png_data_dir)[0])
+        #keywords = "#" + " #".join(data['keywords'])
         #pyautogui.prompt(text="#" + " #".join(data['keywords']), title='Image keywords' , default='')
 
         for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
             with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
                 data = json.load(file_name)
+
             if data['page'] == target_page:
                 if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
                     png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
                     image = os.listdir(self.png_data_dir/png_subfolder)[0]
                     print(ind_json_file, image)
-                    # print keywords - data['keywords']
+                    
+                    # display image
                     img = Image.open(self.png_data_dir/png_subfolder/image)
+
+                    # print keywords 
+                    keywords = "#" + " #".join(data['keywords'])
+                    font = ImageFont.truetype("arial.ttf", 25)
+                    id = ImageDraw.Draw(img)
+                    id.text((400, 1000), keywords, fill=(255, 255, 255), font = font)
+
                     img.show() 
                     img.close()
 
@@ -142,8 +155,28 @@ class MetaverseGenerator():
         #co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
         print(phrase_spoken)
         try:
-            _, index_sentence = PhraseSync(phrase_spoken).phrase_sync(input_text_for_sync, co_ord_list)
+            _, index_sentence = ReadingTracker(phrase_spoken).reading_tracker(input_text_for_sync, co_ord_list)
             self.read_image_json(0, index_sentence)
         except:
             print("Keep reading to see the metaverse getting displayed!")
+
+    def create_img_grid():
+        
+        im1 = np.arange(100).reshape((10, 10))
+        im2 = im1.T
+        im3 = np.flipud(im1)
+        im4 = np.fliplr(im2)
+
+        fig = plt.figure(figsize=(4., 4.))
+        grid = ImageGrid(fig, 111,  # similar to subplot(111)
+                         nrows_ncols=(2, 2),  # creates 2x2 grid of axes
+                         axes_pad=0.1,  # pad between axes in inch.
+                         )
+
+        for ax, im in zip(grid, [im1, im2, im3, im4]):
+            # Iterating over the grid returns the Axes.
+            ax.imshow(im)
+
+        plt.show()
+
             

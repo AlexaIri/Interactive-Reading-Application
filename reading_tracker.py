@@ -4,15 +4,15 @@ from gpt3Api import ImageGenerator
 from nltk.collocations import *
 import spacy
 
-class PhraseSync():
+class ReadingTracker():
     def __init__(self, phrase_spoken):
         self.phrase_spoken = phrase_spoken
         self.nlp = spacy.load("en_core_web_sm")
 
 
-    ######################## PHRASE SYNC ALGORITHM #################################
+    ######################## KARAOKE READING TRACKER ALGORITHM #################################
 
-    def phrase_sync(self, splitted_text_with_punctuation, co_ord_list):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
+    def reading_tracker(self, splitted_text_with_punctuation, co_ord_list):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
                                                                            # to where it ends which is where the punctuation mark is ('.!?;:')
         self.phrase_spoken = self.phrase_spoken['text']
         print("phrase spoken\n", self.phrase_spoken)

@@ -27,8 +27,8 @@ import math
 from collections import defaultdict, Counter
 from nltk.tokenize import word_tokenize
 from nltk.text import Text
-from wordSync import WordSync
-from phraseSync import PhraseSync
+from pronunciation_checker import PronunciationChecker
+from reading_tracker import ReadingTracker
 from metaverseGenerator import MetaverseGenerator
 import fitz
 
@@ -152,8 +152,8 @@ class VoskModel():
                 input_text_for_sync = data['text']
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
 
-                # Sync Reading by Words
-                if sync_algorithm == "word_sync":
+                # Pronunciation Checker
+                if sync_algorithm == "pronunciation_checker":
                    while True:
                         data = self.q.get()
                         if rec.AcceptWaveform(data):
@@ -165,14 +165,14 @@ class VoskModel():
                                 if my_data[key] != self.previous_line or key == 'text':
                                 
                                     if 'text' in my_data: # read what is stored in the jsons
-                                        WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), my_data, input_text_for_sync, self.co_ord_list).word_sync()
+                                        PronunciationChecker(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), my_data, input_text_for_sync, self.co_ord_list).pronunciation_checker()
                                         #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
                                        
                                     if my_data[key] == self.safety_word : return
                                     self.previous_line = my_data[key]
 
-                # Sync Reading by Phrases 
-                elif sync_algorithm == "phrase_sync":
+                # Reading Tracker
+                elif sync_algorithm == "reading_tracker":
                 
                     while True:
                         # Take a new screenshot by comparing the timings of the previous and the current screenshots
@@ -210,7 +210,7 @@ class VoskModel():
                                 
                                     if 'text' in my_data: # read what is stored in the jsons, change the paths
                                         #self.phrase_sync(my_data, input_text_for_sync)
-                                        PhraseSync(my_data).phrase_sync(input_text_for_sync, self.co_ord_list)
+                                        ReadingTracker(my_data).reading_tracker(input_text_for_sync, self.co_ord_list)
                                         
                                     if my_data[key] == self.safety_word : return
                                     self.previous_line = my_data[key]
