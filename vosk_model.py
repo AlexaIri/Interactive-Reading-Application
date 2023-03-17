@@ -30,6 +30,7 @@ from nltk.text import Text
 from wordSync import WordSync
 from phraseSync import PhraseSync
 from metaverseGenerator import MetaverseGenerator
+import fitz
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
 
@@ -49,6 +50,9 @@ class VoskModel():
         self.first_index = -1
         self.match = False
         self.nlp = spacy.load("en_core_web_sm")
+        
+        self.json_data_dir = Path.cwd() / "json_image_filestore"        
+        self.png_data_dir = Path.cwd() / "png_image_filestore"
 
     def setUp(self):
 
@@ -99,7 +103,7 @@ class VoskModel():
 
     def clean_text(self, splitted_text_with_punctuation):
 
-        junk_words = ['Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
+        junk_words = ['Kids.pdf', 'Moral', 'Stories', 'Kids', '.pdf', 'Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
         def match_words_with_punctuation(word):
             return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*',word))
   
@@ -118,10 +122,16 @@ class VoskModel():
         self.delete_from_text(indexes, splitted_text_with_punctuation)
         return indexes  
 
+    def clean_story_text(self, text):
+        #text = text.replace("Alice’s Adventures in Wonderland", '')
+        text = re.sub(r'[0-9]+', '', text)
+        text = re.sub(r'Free eBooks at Planet eBook.com','', text)
+        return text
+
 
     ################### KARAOKE READING #######################
 
-    def karaoke_reading(self, sync_algorithm): 
+    def karaoke_reading(self, sync_algorithm, selected_story_book): 
         rec,samplerate = self.setUp()
         try: 
 
@@ -130,72 +140,178 @@ class VoskModel():
                 img = pyautogui.screenshot()
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                #words = pytesseract.image_to_string(img, lang="eng", config="--psm 6")
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
                 print("data generated from ss:", data)
 
                 indexes_to_del = self.clean_text(data['text'])
-
                 for key in data.keys():
                     if key!='text':
                         self.delete_from_text(indexes_to_del, data[key])
 
                 print("NEWWWWWWWWWW data generated from ss:", data)
-
                 input_text_for_sync = data['text']
-                #contiguous_text = ' '.join(input_text_for_sync)
-                #self.contextSync(contiguous_text)
-                
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                 
-                while True:
-                    time_of_latest_ss = time.perf_counter()
-                    if(time_of_latest_ss - time_of_prev_ss > 30):
-                        img = pyautogui.screenshot()
-                        img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                        data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                        #print("data generated from ss:", data)
-
-                        indexes_to_del = self.clean_text(data['text'])
-
-                        for key in data.keys():
-                            if key!='text':
-                                self.delete_from_text(indexes_to_del, data[key])
-
-                        #print("NEWWWWWWWWWW data generated from ss:", data)
-                
-                        input_text_for_sync = data['text']
-                        self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                        
-                        time_of_prev_ss = time_of_latest_ss
-
-                    #MAYBE TAKE A NEW SCREENSHOT IF U SCROLL THE PAGE, aka RETAIN THE FIRST SENTENCE ON EACH PAGE, IF IT IS DIFFERENT, THEN TAKE A NEW SS
-                    data = self.q.get()
-                    if rec.AcceptWaveform(data):
-                        my_data = json.loads(rec.Result())
-                    else:
-                        my_data = json.loads(rec.PartialResult())
-                    for key in my_data.keys():
-                        if my_data[key]:
-                            if my_data[key] != self.previous_line or key == 'text':
+                # Sync Reading by Words
+                if sync_algorithm == "word_sync":
+                   while True:
+                        data = self.q.get()
+                        if rec.AcceptWaveform(data):
+                            my_data = json.loads(rec.Result())
+                        else:
+                            my_data = json.loads(rec.PartialResult())
+                        for key in my_data.keys():
+                            if my_data[key]:
+                                if my_data[key] != self.previous_line or key == 'text':
                                 
-                                if 'text' in my_data: # read what is stored in the jsons, change the paths
-                                    if sync_algorithm == "word_sync":
+                                    if 'text' in my_data: # read what is stored in the jsons
                                         WordSync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), my_data, input_text_for_sync, self.co_ord_list).word_sync()
                                         #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
-                                    elif sync_algorithm == "phrase_sync":
+                                       
+                                    if my_data[key] == self.safety_word : return
+                                    self.previous_line = my_data[key]
+
+                # Sync Reading by Phrases 
+                elif sync_algorithm == "phrase_sync":
+                
+                    while True:
+                        # Take a new screenshot by comparing the timings of the previous and the current screenshots
+                        # in case of scrolling down the story book to a new page 
+                        time_of_latest_ss = time.perf_counter()
+                        if(time_of_latest_ss - time_of_prev_ss > 30):
+                            img = pyautogui.screenshot()
+                            img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+
+                            data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+                            #print("data generated from ss:", data)
+
+                            indexes_to_del = self.clean_text(data['text'])
+
+                            for key in data.keys():
+                                if key!='text':
+                                    self.delete_from_text(indexes_to_del, data[key])
+
+                            #print("NEWWWWWWWWWW data generated from ss:", data)
+                
+                            input_text_for_sync = data['text']
+                            self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                        
+                            time_of_prev_ss = time_of_latest_ss
+
+                        # Record a new spoken sequence of words and highlight it accordingly by applying a text analysis algorithm (PhraseSync) 
+                        data = self.q.get()
+                        if rec.AcceptWaveform(data):
+                            my_data = json.loads(rec.Result())
+                        else:
+                            my_data = json.loads(rec.PartialResult())
+                        for key in my_data.keys():
+                            if my_data[key]:
+                                if my_data[key] != self.previous_line or key == 'text':
+                                
+                                    if 'text' in my_data: # read what is stored in the jsons, change the paths
                                         #self.phrase_sync(my_data, input_text_for_sync)
                                         PhraseSync(my_data).phrase_sync(input_text_for_sync, self.co_ord_list)
+                                        
+                                    if my_data[key] == self.safety_word : return
+                                    self.previous_line = my_data[key]
 
-                                    else:
-                                        MetaverseGenerator(r"C:\Users\Asus ZenBook\Desktop\UCL\Alice_removed.pdf").contextSyncForReading(my_data, input_text_for_sync, self.co_ord_list)
+                # Sync Reading by Context
+                else:
+                    
+                    MAIN_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
+                    PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH,'Story Library', selected_story_book)
+                                       
+                    while True:
+                        data = self.q.get()
+                        if rec.AcceptWaveform(data):
+                            my_data = json.loads(rec.Result())
+                        else:
+                            my_data = json.loads(rec.PartialResult())
+                        for key in my_data.keys():
+                            if my_data[key]:
+                                if my_data[key] != self.previous_line or key == 'text':
+                                
+                                    if 'text' in my_data: # read what is stored in the jsons, change the paths
+                                        MetaverseGenerator(PDF_STORY_PATH, selected_story_book).generateMetaverse(my_data, input_text_for_sync, self.co_ord_list)
+                                        
+                                    if my_data[key] == self.safety_word : return
+                                    self.previous_line = my_data[key]
+                    #with fitz.open(PDF_STORY_PATH) as doc:
+                    #    change_page = False 
+                    #    for page_no, page in enumerate(doc):
+                    #        print("I M LA NAIBA SA MA IA: ", page_no, change_page)
 
-                                    
-                                if my_data[key] == self.safety_word : return
-                                self.previous_line = my_data[key]
+                    #        if change_page == True: # the first page of the book is already screenshotted
+
+                    #            img = pyautogui.screenshot()
+                    #            img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+
+                    #            data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
+                    #            #print("data generated from ss:", data)
+
+                    #            indexes_to_del = self.clean_text(data['text'])
+                    #            for key in data.keys():
+                    #                if key!='text':
+                    #                    self.delete_from_text(indexes_to_del, data[key])
+
+                    #            input_text_for_sync = data['text']
+                    #            self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                    #            change_page = False
+                            
+                    #        text = page.get_text()
+                    #        text = text[text.find('Chapter') + len('Chapter') + 3:]
+                    #        #print(text, "\n")
+                    #        text = self.clean_story_text(text)
+                    
+                    #        while True:
+                    #            data = self.q.get()
+                    #            if rec.AcceptWaveform(data):
+                    #                my_data = json.loads(rec.Result())
+                    #            else:
+                    #                my_data = json.loads(rec.PartialResult()) 
+                    #            for key in my_data.keys():
+                    #                if my_data[key]:
+                    #                    if my_data[key] != self.previous_line or key == 'text':
+                                
+                    #                        if 'text' in my_data: # read what is stored in the jsons
+                    #                           self.generateMetaverse(page_no, my_data, input_text_for_sync, self.co_ord_list)
+                                           
+                    #                        if my_data[key] == self.safety_word : return
+                    #                        elif my_data[key] == "go to the next page":
+                    #                            change_page = True
+                    #                            break 
+
+                    #                        self.previous_line = my_data[key]
+
+                    #            if change_page:
+                    #                break
+
+
 
         except KeyboardInterrupt:
             print('\nDone -- KEYBOARDiNTERRUPT')
         except Exception as e:
             print('exception', e)
+
+    def read_json(self, target_page, target_phrase_ind):
+        print(os.listdir(self.png_data_dir)[0])
+        for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
+            with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
+                data = json.load(file_name)
+            if data['page'] == target_page:
+                if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
+                    png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
+                    image = os.listdir(self.png_data_dir/png_subfolder)[0]
+                    print(ind_json_file, image)
+                    
+                    img = Image.open(self.png_data_dir/png_subfolder/image)
+                    img.show() 
+                    img.close()
+
+    def generateMetaverse(self, page_number, phrase_spoken, input_text_for_sync, co_ord_list):
+        print(phrase_spoken)
+        try:
+            _, index_sentence = PhraseSync(phrase_spoken).phrase_sync(input_text_for_sync, co_ord_list)
+            self.read_json(page_number, index_sentence)
+        except:
+            print("Keep reading to see the metaverse getting displayed!")

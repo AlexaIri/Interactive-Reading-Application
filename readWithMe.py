@@ -16,5 +16,5 @@ class ReadWithMe: #kita
     #def karaoke_reading_by_context(self):
     #    self.finalModel.karaoke_reading("context_sync")
 
-    def karaoke_sync_reading(self, mode):
-        self.finalModel.karaoke_reading(mode)
+    def karaoke_sync_reading(self, mode, selected_story_book):
+        self.finalModel.karaoke_reading(mode, selected_story_book)

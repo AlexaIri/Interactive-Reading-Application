@@ -3,5 +3,7 @@
     "word_sync": false,
     "phrase_sync": false,
     "context_sync": true
-  }
+  },
+  "next_page": 0, 
+  "story_book": "Moral Stories for Kids.pdf"
 }

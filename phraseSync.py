@@ -98,14 +98,14 @@ class PhraseSync():
                     max_length_similarity, detected_sentence = long_substr_by_word(data)[1], (sentence, ind_sentence)
             if(detected_sentence == ''):
                 return -1
-           
             return detected_sentence
+
         if(belong_to_which_sentence(self.phrase_spoken, sentences) != -1):
 
             detected_sentence, index_sentence = belong_to_which_sentence(self.phrase_spoken, sentences) # if the long substr by word does not return anything, this line will fail because there will be nothing to unpack, put a try catch or something
         
             print("The sentence to be highlighted: ", detected_sentence)
-            print(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1])
+
             self.highlight(sentence_metadata[index_sentence][0], sentence_metadata[index_sentence][1], co_ord_list)
             return detected_sentence, index_sentence 
         else:
@@ -119,8 +119,8 @@ class PhraseSync():
     def highlight(self, first_word_index, last_word_index, co_ord_list):
         #word_placement = [(value, count) for count, value in enumerate(self.co_ord_list)]
         #print("Word placement on page:\n", word_placement)
-        print("The highlighting on page starts\n")
-        pyautogui.click(x=co_ord_list[first_word_index][1], y=co_ord_list[first_word_index][2],  duration = 0.1)
+        print("The highlighting on the page starts\n")
+        pyautogui.click(x=co_ord_list[first_word_index][1], y=co_ord_list[first_word_index][2], duration = 0.1)
         pyautogui.keyDown('shift') # press the key
         pyautogui.keyDown('ctrl')
         pyautogui.dragTo(x=co_ord_list[last_word_index][1]+co_ord_list[last_word_index][3], 

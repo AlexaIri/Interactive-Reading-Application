@@ -1,35 +1,75 @@
-import spacy
-import nltk, re, pprint
+import fitz
+from contextSync import ContextSync
+from pathlib import Path
+import nltk, re
 from nltk.collocations import *
 from pathlib import Path
 import math
 from collections import defaultdict, Counter
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import word_tokenize
 from nltk.text import Text
 from gpt3Api import ImageGenerator
-import json
 import os
-import sys
-import cv2
-from PIL import Image
+import spacy
 
-class ContextSync():
-    def __init__(self):
+class StoryBookPreprocessor():
+
+    def __init__(self, story_book_path, story_book_name):
+        self.story_book_path = story_book_path 
+        self.story_book_name = story_book_name
+        self.sync = ContextSync()
+        self.json_data_dir = Path.cwd() / "json_image_filestore"        
+        self.png_data_dir = Path.cwd() / "png_image_filestore"
+        
         self.nlp = spacy.load("en_core_web_sm")
         nltk.download('punkt')
         nltk.download('averaged_perceptron_tagger')
         nltk.download('stopwords')
 
-        self.json_data_dir = Path.cwd() / "json_image_filestore"
+        
+    def clean_text(self, text):
+        text = re.sub(r'100 Moral Stories', "", text)
+        text = re.sub(r'Stories', "", text)
 
+        text = re.sub(r'[0-9]+', '', text)
+        text = re.sub(r'Free eBooks at Planet eBook.com','', text)
+        text = re.sub(r'^(www)?:\/\/.*[\r\n]*', '', text, flags=re.MULTILINE) # nu merge
+        text = re.sub(r'www.islamicoccasions.com', "", text)
+        return text
 
-    ######################## CONTEXT SYNC ALGORITHM #################################
+    def delete_from_text(self, list_indexes, tokens):
+        for index in sorted(list_indexes, reverse=True):
+            del tokens[index]
+
+    def process_text(self, splitted_text_with_punctuation):
+
+        junk_words = ['Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
+        def match_words_with_punctuation(word):
+            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*',word))
+  
+        stop_words = nltk.corpus.stopwords.words("english")
+        stop_words.append("I")
+  
+        def eliminate_miscellaneous_chars(tokens):
+            indexes_to_del = set()
+            for ind,token in enumerate(tokens):
+                if token not in stop_words and (token.isnumeric() or token in junk_words or match_words_with_punctuation(token)==False or (len(token)==1 and token.isalpha())) :
+                    indexes_to_del.add(ind)
+            return indexes_to_del
+    
+      
+        indexes = eliminate_miscellaneous_chars(splitted_text_with_punctuation)
+        self.delete_from_text(indexes, splitted_text_with_punctuation)
+        return indexes
+    
+
+    ######################## CONTEXT ANALYSIS ALGORITHM TO FEED STORY TEXT INTO OPENAI GPT3 #################################
 
     def get_index(self, dir):
         return len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
 
 
-    def contextSyncForMetaverse(self, text_with_punctuation, page_no):
+    def preprocessMetaversePerBook(self, text_with_punctuation, page_no):
         gpt_max_tokens = 1500
         
         '''
@@ -44,7 +84,7 @@ class ContextSync():
                 return sentences, tokens
     
             def pos_tagging(tokens):
-                return [nltk.pos_tag(token) for token in tokens]
+                 return [nltk.pos_tag(token) for token in tokens]
 
             sentences, tokens = tokenization_and_pos_tagging(text_with_punctuation)
             # The lexical richness metric shows us the percentage of distinct words in  the text
@@ -68,7 +108,7 @@ class ContextSync():
     
             text_without_stop_words, sents_for_collocation_check = stop_words(splitted_text_without_punctuation, tokens)
   
-            print("\n The passage tokens after we eliminated the stop words for a meaningful textual analysis:\n", text_without_stop_words, '\n')
+            # print("\n The passage tokens after we eliminated the stop words for a meaningful textual analysis:\n", text_without_stop_words, '\n')
             if(splitted_text_without_punctuation):
                 def textual_metrics(words, sentences):
                     average_word_length = sum(map(len, words))/len(words)
@@ -79,10 +119,10 @@ class ContextSync():
   
                 average_word_length, average_sentence_length, number_words_per_sentence, word_frequency = textual_metrics(splitted_text_without_punctuation, sentences)
   
-                print("Average Word Length: ", average_word_length)
-                print("Average Sentence Length: ", average_sentence_length)
-                print("Average Number of Words per Sentence: ", number_words_per_sentence)
-                print("Word Frequency: ", word_frequency, '\n')
+                #print("Average Word Length: ", average_word_length)
+                #print("Average Sentence Length: ", average_sentence_length)
+                #print("Average Number of Words per Sentence: ", number_words_per_sentence)
+                #print("Word Frequency: ", word_frequency, '\n')
                 threshold_to_input_to_gpt = math.floor(gpt_max_tokens/number_words_per_sentence)
                 print("Maximum number of phrases to input into the GPT3 algorithm: ", threshold_to_input_to_gpt,'\n')
 
@@ -94,7 +134,7 @@ class ContextSync():
                         if token[1] in ['NN', 'NNS'] and word_frequency[token[0]]>=2:
                             frequent_nouns.add(token[0])
 
-                print("Most most frequently utilised nouns: ", frequent_nouns, '\n')
+                #print("Most most frequently utilised nouns: ", frequent_nouns, '\n')
   
                 '''
                 Implement Entity Recognition 
@@ -130,7 +170,7 @@ class ContextSync():
     
                 extract_objects_from_sents(sentences)
   
-                print("Subjects and objects per sentence:\n", subjects_and_objects, '\n')
+                #print("Subjects and objects per sentence:\n", subjects_and_objects, '\n')
     
                 # Implement Relation Extraction 
   
@@ -156,11 +196,12 @@ class ContextSync():
 
                 collocations = [' '.join(elem[0]) for elem in collocations]
     
-                print("Collocations:\n", collocations)
-                print("\nConcordance:\n", concordances)
+                #print("Collocations:\n", collocations)
+                #print("\nConcordance:\n", concordances)
 
                 # Input text generator for the GPT3 Metaverse Algorithm
-                step = math.floor(threshold_to_input_to_gpt/(3*average_word_length))
+                step = math.floor(threshold_to_input_to_gpt/(9*int(average_word_length)))
+                print("STEEEEP", average_word_length, step)
                 for ind in range(0, len(sentences), step):
                     
                     start_ind_phrase = ind
@@ -169,36 +210,18 @@ class ContextSync():
                         end_ind_phrase = start_ind_phrase + len(sentences) % step
                     else:
                         end_ind_phrase = start_ind_phrase + step - 1
-                    passage = ' '.join(sentences[start_ind_phrase:end_ind_phrase]) 
+                    passage = ' '.join(sentences[start_ind_phrase:(end_ind_phrase+1)]) 
                     print("The excerpt to be fed into the GPT3 Algorithm is: \n", passage, '\n')
+                    print(start_ind_phrase, end_ind_phrase)
 
                     # Find keywords for image metadata
                     keywords = list(word for word in frequent_nouns if(passage.find(word))!=-1)
 
                     image_metadata = (start_ind_phrase, end_ind_phrase, keywords, page_no)
                     print("Image metadata: ", image_metadata, '\n')
-
-                    #for ind, json_F in enumerate(os.listdir(self.json_data_dir)):
-                    #    meta_fil = self.metamama/os.listdir(self.metamama)[ind]
-                    #    with open(meta_fil, "r",  encoding="utf-8") as file_name:
-                    #        meta = json.load(file_name)
-
-
-                    #    with open(self.json_data_dir/json_F, "w") as file_name:
-                    #        json.dump(dict(meta), file_name)
-                    #response = dict(start_ind_phrase = start_ind_phrase, end_ind_phrase = end_ind_phrase, keywords = keywords, chapter = chapter)
-                           
-
-                    #file_name = self.metamama / f"{self.get_index(self.metamama)}-meta.json"
-                    #print(file_name)
-                    ## Populate the json with the serialised imahge
-                    #with open(file_name, mode="w", encoding="utf-8") as file:
-                    #    json.dump(response, file)
-                    #with open(file_name, mode="r", encoding="utf-8") as file:
-                    #    json.load(file)
-
-                    
-                    gpt3 = ImageGenerator(passage, image_metadata)
+                  
+                    # Generate images on the current page
+                    gpt3 = ImageGenerator(passage, image_metadata, self.story_book_name)
                     gpt3.retrieve_image_from_gpt3OpenAI()
 
                     try: 
@@ -215,3 +238,41 @@ class ContextSync():
                             print(f"The collocation strength score ({coll_score}) showcases that we should merge two consecutive context extractions or generate a series of images instead of just 1. The GPT3 images can be generated successfully!\n")
                     except:
                         print("Exception thrown when determining collocations and concordances")
+                        
+    # Extract the text of the story book per page and per chapter
+    def process_text_load_metaverse(self):
+        with fitz.open(self.story_book_path) as doc:
+               
+                story_text = ''
+                for page_no, page in enumerate(doc):
+                    text = page.get_text()
+
+                    try:
+                        text = text[text.find('Chapter') + len('Chapter') + 3:] 
+                    except:
+                        print("This story book is not structured on chapters")
+
+                    text = self.clean_text(text)
+                    
+                    self.preprocessMetaversePerBook(text, page_no)
+                     
+                    story_text += page.get_text()
+                   
+                #story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
+                #story_text = self.clean_text(story_text)
+
+                #chapter_no = -1 
+                #while(story_text.find('Chapter')!=-1):
+                #    chapter = story_text[:story_text.find('Chapter')]
+                #    chapter_no += 1
+                #    #print("Start of a new chapter\n\n", chapter, '\n')
+                #    story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
+                
+                #    # Generate Metaverse and Proceed with the Context Analyis
+                #    self.preprocessMetaversePerBook(chapter, chapter_no)
+                
+
+                # # Last chapter 
+                #print("Last chapter\n", story_text)
+                #self.preprocessMetaversePerBook(story_text, chapter_no+1)
+
