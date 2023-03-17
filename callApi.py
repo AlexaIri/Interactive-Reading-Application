@@ -1,5 +1,5 @@
 from kita import Kita
-from metaverseGenerator import MetaverseGenerator
+from metaverse_generator import MetaverseGenerator
 from storyBookPreprocessor import StoryBookPreprocessor
 import json
 import os
@@ -7,7 +7,7 @@ import os
 MAIN_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 VOSK_PATH = os.path.join(MAIN_FOLDER_PATH, 'models', 'vosk')
 STORIES_LIBRARY = os.path.join(MAIN_FOLDER_PATH,  "Story Library")
-#PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH, 'Alice_Story.pdf') # preia pdf ul dintr-un drop down button via MFC C++
+#PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH, 'Alice_Story.pdf')
 #STORY_BOOK_NAME = "Moral Stories for Kids.pdf"
 
 # Call the Kita API
@@ -36,7 +36,4 @@ for story in os.listdir(STORIES_LIBRARY):
 # Display the metaverse for the selected story book
 PDF_STORY_PATH = os.path.join(STORIES_LIBRARY, selected_story_book)
 metaverse = MetaverseGenerator(PDF_STORY_PATH, selected_story_book) 
-#metaverse.generateMetaverse() 
-
-# for compilation
-#  python build.py callApi.py
+#metaverse.read_story_by_page() 

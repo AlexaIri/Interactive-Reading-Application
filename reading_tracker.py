@@ -14,7 +14,6 @@ class ReadingTracker():
 
     def reading_tracker(self, splitted_text_with_punctuation, co_ord_list):  # say a few words and see from which phrase they come from, and highlight everything from the start of the sentence 
                                                                            # to where it ends which is where the punctuation mark is ('.!?;:')
-        self.phrase_spoken = self.phrase_spoken['text']
         print("phrase spoken\n", self.phrase_spoken)
 
         # Step 1: eliminate trailing whitespaces from the text

@@ -1,5 +1,4 @@
 import fitz
-from contextSync import ContextSync
 from pathlib import Path
 import nltk, re
 from nltk.collocations import *
@@ -17,7 +16,6 @@ class StoryBookPreprocessor():
     def __init__(self, story_book_path, story_book_name):
         self.story_book_path = story_book_path 
         self.story_book_name = story_book_name
-        self.sync = ContextSync()
         self.json_data_dir = Path.cwd() / "json_image_filestore"        
         self.png_data_dir = Path.cwd() / "png_image_filestore"
         

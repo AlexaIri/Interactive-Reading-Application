@@ -29,7 +29,7 @@ from nltk.tokenize import word_tokenize
 from nltk.text import Text
 from pronunciation_checker import PronunciationChecker
 from reading_tracker import ReadingTracker
-from metaverseGenerator import MetaverseGenerator
+from metaverse_generator import MetaverseGenerator
 import fitz
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
@@ -42,6 +42,7 @@ class VoskModel():
         self.previous_length = 0
         self.mode = mode
         self.safety_word = safety_word
+        self.change_page = "move to the next page"
         self.lang = lang
         self.rec = ""
         self.text_dict = {}
@@ -141,7 +142,7 @@ class VoskModel():
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                print("data generated from ss:", data)
+                #print("data generated from ss:", data)
 
                 indexes_to_del = self.clean_text(data['text'])
                 for key in data.keys():
@@ -210,108 +211,53 @@ class VoskModel():
                                 
                                     if 'text' in my_data: # read what is stored in the jsons, change the paths
                                         #self.phrase_sync(my_data, input_text_for_sync)
-                                        ReadingTracker(my_data).reading_tracker(input_text_for_sync, self.co_ord_list)
+                                        ReadingTracker(my_data['text']).reading_tracker(input_text_for_sync, self.co_ord_list)
                                         
                                     if my_data[key] == self.safety_word : return
                                     self.previous_line = my_data[key]
 
-                # Sync Reading by Context
+                # Metaverse Generator
                 else:
                     
                     MAIN_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
                     PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH,'Story Library', selected_story_book)
-                                       
-                    while True:
-                        data = self.q.get()
-                        if rec.AcceptWaveform(data):
-                            my_data = json.loads(rec.Result())
-                        else:
-                            my_data = json.loads(rec.PartialResult())
-                        for key in my_data.keys():
-                            if my_data[key]:
-                                if my_data[key] != self.previous_line or key == 'text':
+                                 
+                    with fitz.open(PDF_STORY_PATH) as doc:
+                        for page_no, page in enumerate(doc):
+                            page = doc.load_page(page_id=page_no)
+                            page_pix = page.get_pixmap()
+                            page_pix.save("page.png")
+
+                            data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
+
+                            indexes_to_del = self.clean_text(data['text'])
+                            for key in data.keys():
+                                if key!='text':
+                                    self.delete_from_text(indexes_to_del, data[key])
+
+                            print("Data generated from screenshotting the page:", data)
+                            input_text_for_sync = data['text']
+                            co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                            while True:
+                                data = self.q.get()
+                                if rec.AcceptWaveform(data):
+                                    my_data = json.loads(rec.Result())
+                                else:
+                                    my_data = json.loads(rec.PartialResult())
+                                for key in my_data.keys():
+                                    if my_data[key]:
+                                        if my_data[key] != self.previous_line or key == 'text':
                                 
-                                    if 'text' in my_data: # read what is stored in the jsons, change the paths
-                                        MetaverseGenerator(PDF_STORY_PATH, selected_story_book).generateMetaverse(my_data, input_text_for_sync, self.co_ord_list)
+                                            if 'text' in my_data: # read what is stored in the jsons, change the paths
                                         
-                                    if my_data[key] == self.safety_word : return
-                                    self.previous_line = my_data[key]
-                    #with fitz.open(PDF_STORY_PATH) as doc:
-                    #    change_page = False 
-                    #    for page_no, page in enumerate(doc):
-                    #        print("I M LA NAIBA SA MA IA: ", page_no, change_page)
-
-                    #        if change_page == True: # the first page of the book is already screenshotted
-
-                    #            img = pyautogui.screenshot()
-                    #            img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
-
-                    #            data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                    #            #print("data generated from ss:", data)
-
-                    #            indexes_to_del = self.clean_text(data['text'])
-                    #            for key in data.keys():
-                    #                if key!='text':
-                    #                    self.delete_from_text(indexes_to_del, data[key])
-
-                    #            input_text_for_sync = data['text']
-                    #            self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                    #            change_page = False
-                            
-                    #        text = page.get_text()
-                    #        text = text[text.find('Chapter') + len('Chapter') + 3:]
-                    #        #print(text, "\n")
-                    #        text = self.clean_story_text(text)
-                    
-                    #        while True:
-                    #            data = self.q.get()
-                    #            if rec.AcceptWaveform(data):
-                    #                my_data = json.loads(rec.Result())
-                    #            else:
-                    #                my_data = json.loads(rec.PartialResult()) 
-                    #            for key in my_data.keys():
-                    #                if my_data[key]:
-                    #                    if my_data[key] != self.previous_line or key == 'text':
-                                
-                    #                        if 'text' in my_data: # read what is stored in the jsons
-                    #                           self.generateMetaverse(page_no, my_data, input_text_for_sync, self.co_ord_list)
-                                           
-                    #                        if my_data[key] == self.safety_word : return
-                    #                        elif my_data[key] == "go to the next page":
-                    #                            change_page = True
-                    #                            break 
-
-                    #                        self.previous_line = my_data[key]
-
-                    #            if change_page:
-                    #                break
-
-
+                                                MetaverseGenerator(PDF_STORY_PATH, selected_story_book).metaverse_generator(page_no, my_data['text'], input_text_for_sync, co_ord_list)
+                                        
+                                            if my_data[key] == self.safety_word : return
+                                            if my_data[key] == self.change_page: break
+                                            self.previous_line = my_data[key]
+                                    
 
         except KeyboardInterrupt:
             print('\nDone -- KEYBOARDiNTERRUPT')
         except Exception as e:
             print('exception', e)
-
-    def read_json(self, target_page, target_phrase_ind):
-        print(os.listdir(self.png_data_dir)[0])
-        for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
-            with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
-                data = json.load(file_name)
-            if data['page'] == target_page:
-                if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
-                    png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
-                    image = os.listdir(self.png_data_dir/png_subfolder)[0]
-                    print(ind_json_file, image)
-                    
-                    img = Image.open(self.png_data_dir/png_subfolder/image)
-                    img.show() 
-                    img.close()
-
-    def generateMetaverse(self, page_number, phrase_spoken, input_text_for_sync, co_ord_list):
-        print(phrase_spoken)
-        try:
-            _, index_sentence = PhraseSync(phrase_spoken).phrase_sync(input_text_for_sync, co_ord_list)
-            self.read_json(page_number, index_sentence)
-        except:
-            print("Keep reading to see the metaverse getting displayed!")
