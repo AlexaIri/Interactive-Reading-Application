@@ -161,7 +161,6 @@ class VoskModel():
                                 
                                     if 'text' in my_data: # read what is stored in the jsons
                                         PronunciationChecker(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), my_data, input_text_for_sync, self.co_ord_list).pronunciation_checker()
-                                        #self.word_sync(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), d, input_text_for_sync) 
                                        
                                     if my_data[key] == self.safety_word : return
                                     self.previous_line = my_data[key]
@@ -178,7 +177,6 @@ class VoskModel():
                             img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                             data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                            #print("data generated from ss:", data)
 
                             indexes_to_del = self.clean_text(data['text'])
 
@@ -204,7 +202,6 @@ class VoskModel():
                                 if my_data[key] != self.previous_line or key == 'text':
                                 
                                     if 'text' in my_data: # read what is stored in the jsons, change the paths
-                                        #self.phrase_sync(my_data, input_text_for_sync)
                                         ReadingTracker(my_data['text']).reading_tracker(input_text_for_sync, self.co_ord_list)
                                         
                                     if my_data[key] == self.safety_word : return
