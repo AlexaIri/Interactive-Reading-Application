@@ -103,6 +103,8 @@ class MetaverseGenerator():
 
     def read_image_json(self, target_page, target_phrase_ind):
         print(os.listdir(self.png_data_dir)[0])
+        #pyautogui.prompt(text="#" + " #".join(data['keywords']), title='Image keywords' , default='')
+
         for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
             with open(self.json_data_dir/json_file, "r",  encoding="utf-8") as file_name:
                 data = json.load(file_name)

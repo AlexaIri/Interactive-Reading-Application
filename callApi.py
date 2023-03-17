@@ -1,4 +1,4 @@
-from readWithMe import ReadWithMe
+from kita import Kita
 from metaverseGenerator import MetaverseGenerator
 from storyBookPreprocessor import StoryBookPreprocessor
 import json
@@ -11,7 +11,7 @@ STORIES_LIBRARY = os.path.join(MAIN_FOLDER_PATH,  "Story Library")
 #STORY_BOOK_NAME = "Moral Stories for Kids.pdf"
 
 # Call the Kita API
-readWithMe = ReadWithMe("English(US)", "vosk", VOSK_PATH) 
+kita = Kita("English(US)", "vosk", VOSK_PATH) 
 
 with open('configuration.json') as json_file:
     data = json.load(json_file)
@@ -21,7 +21,7 @@ print(selected_story_book)
 
 for mode, value in data['read_mode'].items():
     if value == True:
-        readWithMe.karaoke_sync_reading(mode, selected_story_book)
+        kita.karaoke_sync_reading(mode, selected_story_book)
 
 # Preprocess the story books and Load the Metaverse for each of them (call this just once per book to store the image, preprocess the story book etc.)
 # Generate the images only once per book, otherwise there will be huge latencies in the algorithm
