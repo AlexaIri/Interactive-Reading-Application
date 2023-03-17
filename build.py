@@ -10,6 +10,7 @@ nuitka_args = [
     '--include-data-dir=JSON Images Filestore=JSON Images Filestore',
     '--include-data-dir=PNG Images Filestore=PNG Images Filestore',
     '--include-data-dir=Story Library=Story Library',
+    '--include-data-files=configuration.json=configuration.json',
     '--output-dir=Release',
     '--user-plugin=nuitka_plugins/MediapipePlugin.py',
     '--user-plugin=nuitka_plugins/OpenvinoPlugin.py',

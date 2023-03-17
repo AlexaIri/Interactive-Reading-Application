@@ -17,16 +17,10 @@ import re
 import numpy as np
 import cv2
 import spacy
-from itertools import islice
 import nltk
-from gpt3Api import ImageGenerator
 import nltk, re
 from nltk.collocations import *
 from pathlib import Path
-import math
-from collections import defaultdict, Counter
-from nltk.tokenize import word_tokenize
-from nltk.text import Text
 from pronunciation_checker import PronunciationChecker
 from reading_tracker import ReadingTracker
 from metaverse_generator import MetaverseGenerator
@@ -149,7 +143,7 @@ class VoskModel():
                     if key!='text':
                         self.delete_from_text(indexes_to_del, data[key])
 
-                print("NEWWWWWWWWWW data generated from ss:", data)
+                print("data generated from screenshot:", data)
                 input_text_for_sync = data['text']
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
 
@@ -192,7 +186,7 @@ class VoskModel():
                                 if key!='text':
                                     self.delete_from_text(indexes_to_del, data[key])
 
-                            #print("NEWWWWWWWWWW data generated from ss:", data)
+                            #print("data generated from ss:", data)
                 
                             input_text_for_sync = data['text']
                             self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))

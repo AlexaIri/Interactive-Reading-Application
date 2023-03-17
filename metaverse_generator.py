@@ -131,7 +131,7 @@ class MetaverseGenerator():
             _, index_sentence = ReadingTracker(phrase_spoken).reading_tracker(input_text_for_sync, co_ord_list)
             self.read_image_json(page_no, index_sentence)
         except:
-            print("Keep reading to see the metaverse getting displayed!")
+            print("Keep reading to see the images getting displayed!")
 
     def create_img_grid():
         
