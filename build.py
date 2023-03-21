@@ -6,6 +6,8 @@ nuitka_args = [
     '--standalone',
     '--assume-yes-for-downloads',
     '--plugin-enable=numpy',
+    #'--enable-plugin=pyqt5',
+    #'--noinclude-numba-mode',
     '--include-data-dir=models=models',
     '--include-data-dir=JSON Images Filestore=JSON Images Filestore',
     '--include-data-dir=PNG Images Filestore=PNG Images Filestore',

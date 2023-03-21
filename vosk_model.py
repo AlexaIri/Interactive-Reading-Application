@@ -1,10 +1,6 @@
 import queue
-from pygments import highlight
 import sounddevice as sd
 import vosk
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import  QCoreApplication
-from LiveSubtitleWidget import LiveSubtitleWidget
 vosk.SetLogLevel(-1)
 import sys
 import json
@@ -12,7 +8,6 @@ import pyautogui
 import os
 import time
 import pytesseract
-from PIL import Image
 import re
 import numpy as np
 import cv2
@@ -26,7 +21,8 @@ from reading_tracker import ReadingTracker
 from metaverse_generator import MetaverseGenerator
 import fitz
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Asus ZenBook\AppData\Local\Tesseract-OCR\tesseract'
+TESSERACT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'AppData\Local\Tesseract-OCR','tesseract'))
+pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
 class VoskModel():
     def __init__(self, lang, model_path, mode='transcription', safety_word='stop'):
@@ -56,7 +52,6 @@ class VoskModel():
         nltk.download('stopwords')
 
         if not os.path.exists(self.model_path):
-            print("Please download a model for your language from https://alphacephei.com/vosk/models")
             print(f"and unpack into {self.model_path}.")
         print("model's path:" + self.model_path)
         device_info = sd.query_devices(kind='input')
@@ -220,6 +215,13 @@ class VoskModel():
                             page_pix.save("page.png")
 
                             data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
+
+                            #tp = page.get_textpage_ocr(dpi=300, full=True)
+                            #print("TPPPP", tp)
+
+                            #output = page.get_text(opt="words", textpage=tp)
+                            #print("OUTPUT", output)
+                            
 
                             indexes_to_del = self.clean_text(data['text'])
                             for key in data.keys():
