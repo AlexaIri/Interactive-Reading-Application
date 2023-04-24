@@ -7,7 +7,7 @@ import math
 from collections import defaultdict, Counter
 from nltk.tokenize import word_tokenize
 from nltk.text import Text
-from gpt3Api import ImageGenerator
+from image_generator import GPT3_DALLE2_Image_Generator
 import os
 import spacy
 
@@ -109,16 +109,16 @@ class StoryBookPreprocessor():
             # print("\n The passage tokens after we eliminated the stop words for a meaningful textual analysis:\n", text_without_stop_words, '\n')
             if(splitted_text_without_punctuation):
                 def textual_metrics(words, sentences):
-                    average_word_length = sum(map(len, words))/len(words)
-                    average_sentence_length = sum(map(len, sentences))/len(sentences)
+                    average_word_jump = sum(map(len, words))/len(words)
+                    average_sentence_jump = sum(map(len, sentences))/len(sentences)
                     avg_number_words_per_sentence = len(splitted_text_without_punctuation)/len(sentences)
                     word_frequency = Counter(text_without_stop_words) # we will not take into consideration the stopwords since they are the most frequently occurring, yet counting their occurence does not bolster the analysis
-                    return average_word_length, average_sentence_length, avg_number_words_per_sentence, word_frequency
+                    return average_word_jump, average_sentence_jump, avg_number_words_per_sentence, word_frequency
   
-                average_word_length, average_sentence_length, number_words_per_sentence, word_frequency = textual_metrics(splitted_text_without_punctuation, sentences)
+                average_word_jump, average_sentence_jump, number_words_per_sentence, word_frequency = textual_metrics(splitted_text_without_punctuation, sentences)
   
-                #print("Average Word Length: ", average_word_length)
-                #print("Average Sentence Length: ", average_sentence_length)
+                #print("Average Word jump: ", average_word_jump)
+                #print("Average Sentence jump: ", average_sentence_jump)
                 #print("Average Number of Words per Sentence: ", number_words_per_sentence)
                 #print("Word Frequency: ", word_frequency, '\n')
                 threshold_to_input_to_gpt = math.floor(gpt_max_tokens/number_words_per_sentence)
@@ -170,10 +170,6 @@ class StoryBookPreprocessor():
   
                 #print("Subjects and objects per sentence:\n", subjects_and_objects, '\n')
     
-                # Implement Relation Extraction 
-  
-                # Extract the co-references between the nouns and the pronouns in the text - https://stackoverflow.com/questions/62735456/understanding-and-using-coreference-resolution-stanford-nlp-tool-in-python-3-7
-  
                 # Extract concordance and collocations with bi-grams for context comprehension 
                 collocations, concordances = [], []
 
@@ -198,8 +194,8 @@ class StoryBookPreprocessor():
                 #print("\nConcordance:\n", concordances)
 
                 # Input text generator for the GPT3 Metaverse Algorithm
-                step = math.floor(threshold_to_input_to_gpt/(9*int(average_word_length)))
-                print("STEEEEP", average_word_length, step)
+                step = math.floor(threshold_to_input_to_gpt/(9*int(average_word_jump)))
+                print("STEEEEP", average_word_jump, step)
                 for ind in range(0, len(sentences), step):
                     
                     start_ind_phrase = ind
@@ -219,8 +215,8 @@ class StoryBookPreprocessor():
                     print("Image metadata: ", image_metadata, '\n')
                   
                     # Generate images on the current page
-                    gpt3 = ImageGenerator(passage, image_metadata, self.story_book_name)
-                    gpt3.retrieve_image_from_gpt3OpenAI()
+                    gpt3_dalle2_Image_Generator = GPT3_DALLE2_Image_Generator(passage, image_metadata, self.story_book_name)
+                    gpt3_dalle2_Image_Generator.retrieve_image_from_OpenAI()
 
                     try: 
                         collocated_text = ' '.join(sents_for_collocation_check[start_ind_phrase:end_ind_phrase])
@@ -237,40 +233,39 @@ class StoryBookPreprocessor():
                     except:
                         print("Exception thrown when determining collocations and concordances")
                         
-    # Extract the text of the story book per page and per chapter
+    # Process the content of the story book per page and per chapter
     def process_text_load_metaverse(self):
         with fitz.open(self.story_book_path) as doc:
                
-                story_text = ''
-                for page_no, page in enumerate(doc):
-                    text = page.get_text()
+            story_text = ''
+            for page_no, page in enumerate(doc):
+                text = page.get_text()
 
-                    try:
-                        text = text[text.find('Chapter') + len('Chapter') + 3:] 
-                    except:
-                        print("This story book is not structured on chapters")
+                try:
+                    text = text[text.find('Chapter') + len('Chapter') + 3:] 
+                except:
+                    print("This story book is not structured on chapters")
 
-                    text = self.clean_text(text)
+                text = self.clean_text(text)
                     
-                    self.preprocessMetaversePerBook(text, page_no)
+                self.preprocessMetaversePerBook(text, page_no)
                      
-                    story_text += page.get_text()
+                story_text += page.get_text()
                    
-                #story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
-                #story_text = self.clean_text(story_text)
+            story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
+            story_text = self.clean_text(story_text)
 
-                #chapter_no = -1 
-                #while(story_text.find('Chapter')!=-1):
-                #    chapter = story_text[:story_text.find('Chapter')]
-                #    chapter_no += 1
-                #    #print("Start of a new chapter\n\n", chapter, '\n')
-                #    story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
+            chapter_no = -1 
+            while(story_text.find('Chapter')!=-1):
+                chapter = story_text[:story_text.find('Chapter')]
+                chapter_no += 1
+                #print("Start of a new chapter\n\n", chapter, '\n')
+                story_text = story_text[story_text.find('Chapter') + len('Chapter') + 2:]
                 
-                #    # Generate Metaverse and Proceed with the Context Analyis
-                #    self.preprocessMetaversePerBook(chapter, chapter_no)
+                # Generate Metaverse and Proceed with the Context Analyis
+                self.preprocessMetaversePerBook(chapter, chapter_no)
                 
 
-                # # Last chapter 
-                #print("Last chapter\n", story_text)
-                #self.preprocessMetaversePerBook(story_text, chapter_no+1)
-
+                # Append the content of the last chapter 
+            print("Last chapter\n", story_text)
+            self.preprocessMetaversePerBook(story_text, chapter_no+1)
