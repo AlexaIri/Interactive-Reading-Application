@@ -13,6 +13,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
 import subprocess
 
+######################## METAVERSE API #################################
 
 class MetaverseGenerator():
     def __init__(self, story_book_path, selected_story_book):
@@ -48,7 +49,8 @@ class MetaverseGenerator():
     def delete_from_text(self, list_indexes, tokens):
         for index in sorted(list_indexes, reverse=True):
             del tokens[index]
-             
+    
+    # Search through the image filestore to render the appropriate one
     def read_image_json(self, target_page, target_phrase_ind):
         print("The image to be displayed: ", os.listdir(self.png_data_dir)[0])
 
@@ -62,10 +64,9 @@ class MetaverseGenerator():
                     image = os.listdir(self.png_data_dir/png_subfolder)[0]
                     print(ind_json_file, image)
                     
-                    # display image
+                    # Render the image on the screen
                     img = Image.open(self.png_data_dir/png_subfolder/image)
-
-                    # get the size of the image
+                    
                     width, height = img.size
                     print(width, height)
 
@@ -79,15 +80,51 @@ class MetaverseGenerator():
                     
                     img.show() 
                     img.close()
+                    break
 
+    # Search through the image filestore to render the appropriate one
+    def binary_search_read_image_json(self, target_page, target_phrase_ind):
+        print("The image to be displayed: ", os.listdir(self.png_data_dir)[0])
+
+        for ind_json_file, json_file in enumerate(os.listdir(self.json_data_dir)):
+            with open(self.json_data_dir/json_file, "r",  encoding=sys.stdout.encoding) as file_name:
+                data = json.load(file_name)
+
+            if data['page'] == target_page:
+                if data['start_ind_phrase'] <= target_phrase_ind <= data['end_ind_phrase']:
+                    png_subfolder = os.listdir(self.png_data_dir)[ind_json_file]
+                    image = os.listdir(self.png_data_dir/png_subfolder)[0]
+                    print(ind_json_file, image)
+                    
+                    # Render the image on the screen
+                    img = Image.open(self.png_data_dir/png_subfolder/image)
+                    
+                    width, height = img.size
+                    print(width, height)
+
+                    # Print a floating box displaying the keywords that caption the image
+                    keywords = "#" + " #".join(data['keywords'])
+                    font = ImageFont.truetype("arial.ttf", 25)
+                    draw = ImageDraw.Draw(img)
+                    bbox = draw.textbbox((int(39*width/100), int(95*height/100)), keywords,  font = font)
+                    draw.rectangle(bbox, fill="white")
+                    draw.text((int(39*width/100), int(95*height/100)), keywords, fill="black",  font = font)
+                    
+                    img.show() 
+                    img.close()
+                    break
+
+    # Render the visual support for the input story book
     def metaverse_generator(self, page_no, phrase_spoken, input_text_for_sync, co_ord_list):
         print(phrase_spoken)
         try:
+            # Concurrently highlight the read portion of text and render its associated image
             _, index_sentence = ReadingTracker(phrase_spoken).reading_tracker(input_text_for_sync, co_ord_list)
             self.read_image_json(page_no, index_sentence)
         except:
             print("Keep reading to see the images getting displayed!")
-
+            
+    # Create an Image Grid for the Metaverse
     def create_img_grid():
         
         im1 = np.arange(100).reshape((10, 10))
