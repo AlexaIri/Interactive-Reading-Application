@@ -24,12 +24,13 @@ import fitz
 TESSERACT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'AppData\Local\Tesseract-OCR','tesseract'))
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
+# Class following the structure of the VoskModel calss from the MotionInput codebase in vosk_model.py file
 class VoskModel():
     def __init__(self, lang, model_path, mode='transcription', safety_word='stop'):
         self.model_path = model_path  # self._get_model_path()
         self.q = queue.Queue()
         self.previous_line = ""
-        self.previous_length = 0
+        self.previous_jump = 0
         self.mode = mode
         self.safety_word = safety_word
         self.change_page = "move to the next page"
@@ -45,8 +46,9 @@ class VoskModel():
         self.json_data_dir = Path.cwd() / "json_image_filestore"        
         self.png_data_dir = Path.cwd() / "png_image_filestore"
 
+    # Helper method taken from the FunReaders from MotionInput codebase in vosk_model.py file
     def setUp(self):
-
+        
         nltk.download('punkt')
         nltk.download('averaged_perceptron_tagger')
         nltk.download('stopwords')
@@ -66,12 +68,14 @@ class VoskModel():
         print('#' * 80)
         return rec,samplerate
 
+    # Helper method taken from the FunReaders from MotionInput codebase in vosk_model.py file
     def _get_model_path(self):
         full_path = os.path.realpath(__file__)
         file_dir = os.path.dirname(full_path)
         model_path = os.path.join(file_dir, 'models/vosk') 
         return model_path
 
+    # Helper method taken from the FunReaders from MotionInput codebase in vosk_model.py file
     def _callback(self, indata, frames, time, status):
         """This is called (from a separate thread) for each audio block."""
         if status:
@@ -91,11 +95,11 @@ class VoskModel():
         return list(about_text.sents)
     
 
-    def clean_text(self, splitted_text_with_punctuation):
-
-        junk_words = ['Kids.pdf', 'Moral', 'Stories', 'Kids', '.pdf', 'Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
+    def clean_text(self, splitted_text_with_punctuation, blocks, target_block_to_del, book_title):
+        junk_words = ['for Kids.pdf', "for", "kidspdf", 'Moral', 'Stories', 'Kids', '.pdf', 'Notepad', 'File', 'Edit', 'Format', 'View', 'Help', 'Windows', '(CRLF)', 'Ln', 'Col', 'PM', 'AM', 'Adobe', 'Reader', 'Acrobat', 'Microsoft', 'AdobeReader', 'html', 'Tools', 'Fill', 'Sign','Comment', 'Bookmarks', 'Bookmark', 'History', 'Soren', 'Window', 'ES', 'FQ', '(SECURED)', 'pdf', 'de)', 'x', 'wl']
+        junk_words.extend(book_title.split())# delete the title of the book from the document
         def match_words_with_punctuation(word):
-            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*',word))
+            return bool(re.match('^[.,;\-?!()\""]?[a-zA-Z]+[.,;\-?!()\""]*', word))
   
         stop_words = nltk.corpus.stopwords.words("english")
         stop_words.append("I")
@@ -106,39 +110,41 @@ class VoskModel():
                 if token not in stop_words and (token.isnumeric() or token in junk_words or match_words_with_punctuation(token)==False or (len(token)==1 and token.isalpha())) :
                     indexes_to_del.add(ind)
             return indexes_to_del
-    
-      
-        indexes = eliminate_miscellaneous_chars(splitted_text_with_punctuation)
+        # Code for fixing the bug of highlighting the navigation bar/taskbar, the book title alongside the first sentence
+        #def eliminate_start_junk_tokens(blocks, target_block_to_del):
+        #    indexes_to_del = set()
+        #    for ind, b in enumerate(blocks):
+        #        if b == target_block_to_del:
+        #            indexes_to_del.add(ind)
+        #    return indexes_to_del
+        indexes = eliminate_miscellaneous_chars(splitted_text_with_punctuation)        
+        #indexes.update(eliminate_start_junk_tokens(blocks, target_block_to_del))
         self.delete_from_text(indexes, splitted_text_with_punctuation)
         return indexes  
 
-    def clean_story_text(self, text):
-        #text = text.replace("Alice’s Adventures in Wonderland", '')
-        text = re.sub(r'[0-9]+', '', text)
-        text = re.sub(r'Free eBooks at Planet eBook.com','', text)
-        return text
-
-
-    ################### KARAOKE READING #######################
-
-    def karaoke_reading(self, sync_algorithm, selected_story_book): 
+    ################### LIVE READING #######################
+    def live_reading(self, sync_algorithm, selected_story_book): 
         rec,samplerate = self.setUp()
         try: 
-
             with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None, dtype='int16', channels=1, callback=self._callback):
                 time_of_prev_ss = time.perf_counter()
                 img = pyautogui.screenshot()
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                 data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
-                #print("data generated from ss:", data)
-
-                indexes_to_del = self.clean_text(data['text'])
+                indexes_to_del = self.clean_text(data['text'], data['block_num'], data['block_num'][0], selected_story_book)
+                indexes_to_del.add(0)
+                del data['text'][0]
                 for key in data.keys():
                     if key!='text':
                         self.delete_from_text(indexes_to_del, data[key])
 
-                print("data generated from screenshot:", data)
+                #indexes_to_del = self.eliminate_start_junk_tokens(data['block_num'], data['block_num'][0])
+                #for key in data.keys():
+                #    if key!='text':
+                #        self.delete_from_text(indexes_to_del, data[key])
+
+                print("Data generated from Tesseract OCR after pre-proceesing:", data)
                 input_text_for_sync = data['text']
                 self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
 
@@ -160,21 +166,21 @@ class VoskModel():
                                     if my_data[key] == self.safety_word : return
                                     self.previous_line = my_data[key]
 
-                # Reading Tracker
+                # Karaoke Reading Tracker
                 elif sync_algorithm == "reading_tracker":
-                
                     while True:
                         # Take a new screenshot by comparing the timings of the previous and the current screenshots
                         # in case of scrolling down the story book to a new page 
                         time_of_latest_ss = time.perf_counter()
-                        if(time_of_latest_ss - time_of_prev_ss > 30):
+                        if(time_of_latest_ss - time_of_prev_ss > 5):
                             img = pyautogui.screenshot()
                             img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
                             data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
 
-                            indexes_to_del = self.clean_text(data['text'])
-
+                            indexes_to_del = self.clean_text(data['text'], data['block_num'], data['block_num'][0], selected_story_book)
+                            indexes_to_del.add(0)
+                            del data['text'][0]
                             for key in data.keys():
                                 if key!='text':
                                     self.delete_from_text(indexes_to_del, data[key])
@@ -186,7 +192,7 @@ class VoskModel():
                         
                             time_of_prev_ss = time_of_latest_ss
 
-                        # Record a new spoken sequence of words and highlight it accordingly by applying a text analysis algorithm (PhraseSync) 
+                        # Record a newly spoken sequence of words and highlight it accordingly by applying a text analysis algorithm 
                         data = self.q.get()
                         if rec.AcceptWaveform(data):
                             my_data = json.loads(rec.Result())
@@ -208,46 +214,45 @@ class VoskModel():
                     MAIN_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
                     PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH,'Story Library', selected_story_book)
                                  
-                    with fitz.open(PDF_STORY_PATH) as doc:
-                        for page_no, page in enumerate(doc):
-                            page = doc.load_page(page_id=page_no)
-                            page_pix = page.get_pixmap()
-                            page_pix.save("page.png")
+                    #with fitz.open(PDF_STORY_PATH) as doc:
+                    #    for page_no, page in enumerate(doc):
+                    #        page = doc.load_page(page_id=page_no)
+                    #        page_pix = page.get_pixmap()
+                    #        page_pix.save("page.png")
 
-                            data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
+                    #        data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
 
-                            #tp = page.get_textpage_ocr(dpi=300, full=True)
-                            #print("TPPPP", tp)
+                    #        #tp = page.get_textpage_ocr(dpi=300, full=True)
+                    #        #print("TPPPP", tp)
 
-                            #output = page.get_text(opt="words", textpage=tp)
-                            #print("OUTPUT", output)
+                    #        #output = page.get_text(opt="words", textpage=tp)
+                    #        #print("OUTPUT", output)
                             
 
-                            indexes_to_del = self.clean_text(data['text'])
-                            for key in data.keys():
-                                if key!='text':
-                                    self.delete_from_text(indexes_to_del, data[key])
+                    #        indexes_to_del = self.clean_text(data['text'])
+                    #        for key in data.keys():
+                    #            if key!='text':
+                    #                self.delete_from_text(indexes_to_del, data[key])
 
-                            print("Data generated from screenshotting the page:", data)
-                            input_text_for_sync = data['text']
-                            co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                            while True:
-                                data = self.q.get()
-                                if rec.AcceptWaveform(data):
-                                    my_data = json.loads(rec.Result())
-                                else:
-                                    my_data = json.loads(rec.PartialResult())
-                                for key in my_data.keys():
-                                    if my_data[key]:
-                                        if my_data[key] != self.previous_line or key == 'text':
+                    #        print("Data generated from screenshotting the page:", data)
+                    #        input_text_for_sync = data['text']
+                    #        co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                    while True:
+                        data = self.q.get()
+                        if rec.AcceptWaveform(data):
+                            my_data = json.loads(rec.Result())
+                        else:
+                            my_data = json.loads(rec.PartialResult())
+                        for key in my_data.keys():
+                            if my_data[key]:
+                                if my_data[key] != self.previous_line or key == 'text':
                                 
-                                            if 'text' in my_data: # read what is stored in the jsons, change the paths
+                                    if 'text' in my_data: 
+                                        MetaverseGenerator(PDF_STORY_PATH, selected_story_book).metaverse_generator(0, my_data['text'], input_text_for_sync, self.co_ord_list)
                                         
-                                                MetaverseGenerator(PDF_STORY_PATH, selected_story_book).metaverse_generator(page_no, my_data['text'], input_text_for_sync, co_ord_list)
-                                        
-                                            if my_data[key] == self.safety_word : return
-                                            if my_data[key] == self.change_page: break
-                                            self.previous_line = my_data[key]
+                                    if my_data[key] == self.safety_word : return
+                                    if my_data[key] == self.change_page: break
+                                    self.previous_line = my_data[key]
                                     
 
         except KeyboardInterrupt:
