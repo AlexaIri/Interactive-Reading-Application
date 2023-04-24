@@ -1,7 +1,7 @@
 # Class implemented for testing purposes
 
 from kita import Kita
-from storyBookPreprocessor import StoryBookPreprocessor
+from book_preprocessor import StoryBookPreprocessor
 from metaverse_generator import MetaverseGenerator
 import json
 import os
