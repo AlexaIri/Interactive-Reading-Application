@@ -15,7 +15,7 @@ speech_engine.reading_with_kita()
 for story in os.listdir(STORIES_LIBRARY):
    if os.path.isfile(os.path.join(STORIES_LIBRARY, story)):
        # Render the images for a book which doesn't have them generated yet
-       if os.path.exists(os.path.join(MAIN_FOLDER_PATH, 'JSON Images Filestore', story)) == False: 
+       if not os.path.exists(os.path.join(MAIN_FOLDER_PATH, 'JSON Images Filestore', story)): 
         PDF_STORY_PATH = os.path.join(STORIES_LIBRARY, story)
         metaverse = StoryBookPreprocessor(PDF_STORY_PATH, story) 
         metaverse.process_text_load_metaverse() 
