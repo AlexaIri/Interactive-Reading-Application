@@ -33,7 +33,7 @@ class VoskModel():
         self.previous_jump = 0
         self.mode = mode
         self.safety_word = safety_word
-        self.change_page = "move to the next page"
+        self.change_page = "next page"
         self.lang = lang
         self.rec = ""
         self.text_dict = {}
@@ -139,6 +139,7 @@ class VoskModel():
                     if key!='text':
                         self.delete_from_text(indexes_to_del, data[key])
 
+                # Code for fixing the bug of highlighting the navigation bar/taskbar, the book title alongside the first sentence
                 #indexes_to_del = self.eliminate_start_junk_tokens(data['block_num'], data['block_num'][0])
                 #for key in data.keys():
                 #    if key!='text':
@@ -160,7 +161,7 @@ class VoskModel():
                             if my_data[key]:
                                 if my_data[key] != self.previous_line or key == 'text':
                                 
-                                    if 'text' in my_data: # read what is stored in the jsons
+                                    if 'text' in my_data: 
                                         PronunciationChecker(cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR), my_data, input_text_for_sync, self.co_ord_list).pronunciation_checker()
                                        
                                     if my_data[key] == self.safety_word : return
@@ -184,8 +185,6 @@ class VoskModel():
                             for key in data.keys():
                                 if key!='text':
                                     self.delete_from_text(indexes_to_del, data[key])
-
-                            #print("data generated from ss:", data)
                 
                             input_text_for_sync = data['text']
                             self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
@@ -214,46 +213,56 @@ class VoskModel():
                     MAIN_FOLDER_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
                     PDF_STORY_PATH = os.path.join(MAIN_FOLDER_PATH,'Story Library', selected_story_book)
                                  
-                    #with fitz.open(PDF_STORY_PATH) as doc:
-                    #    for page_no, page in enumerate(doc):
-                    #        page = doc.load_page(page_id=page_no)
-                    #        page_pix = page.get_pixmap()
-                    #        page_pix.save("page.png")
+                    with fitz.open(PDF_STORY_PATH) as doc:
+                        # For each page of a book, read until saying "next page" to alert the system the page changed
+                        # To exit the algorithm, say "stop"
+                        for page_no, page in enumerate(doc):
+                            page = doc.load_page(page_id=page_no)
+                            page_pix = page.get_pixmap()
+                            page_pix.save("page.png")
 
-                    #        data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
+                            # Alternative approach to perform Tesseract OCR on a page
+                            #data = pytesseract.image_to_data("page.png", output_type = pytesseract.Output.DICT, lang="eng")
 
-                    #        #tp = page.get_textpage_ocr(dpi=300, full=True)
-                    #        #print("TPPPP", tp)
+                            img = pyautogui.screenshot()
+                            img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
 
-                    #        #output = page.get_text(opt="words", textpage=tp)
-                    #        #print("OUTPUT", output)
-                            
+                            data = pytesseract.image_to_data(img, output_type = pytesseract.Output.DICT, lang="eng")
 
-                    #        indexes_to_del = self.clean_text(data['text'])
-                    #        for key in data.keys():
-                    #            if key!='text':
-                    #                self.delete_from_text(indexes_to_del, data[key])
+                            indexes_to_del = self.clean_text(data['text'], data['block_num'], data['block_num'][0], selected_story_book)
+                            indexes_to_del.add(0)
+                            del data['text'][0]
+                            for key in data.keys():
+                                if key!='text':
+                                    self.delete_from_text(indexes_to_del, data[key])
 
-                    #        print("Data generated from screenshotting the page:", data)
-                    #        input_text_for_sync = data['text']
-                    #        co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
-                    while True:
-                        data = self.q.get()
-                        if rec.AcceptWaveform(data):
-                            my_data = json.loads(rec.Result())
-                        else:
-                            my_data = json.loads(rec.PartialResult())
-                        for key in my_data.keys():
-                            if my_data[key]:
-                                if my_data[key] != self.previous_line or key == 'text':
+                
+                            self.co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                        
+                            page_changed = False
+                            print("Data generated from screenshotting the page:", data)
+                            input_text_for_sync = data['text']
+                            co_ord_list = list(zip(data['text'], data['left'], data['top'], data['width'], data['height']))
+                            while True:
+                                data = self.q.get()
+                                if rec.AcceptWaveform(data):
+                                    my_data = json.loads(rec.Result())
+                                else:
+                                    my_data = json.loads(rec.PartialResult())
+                                for key in my_data.keys():
+                                    if my_data[key]:
+                                        if my_data[key] != self.previous_line or key == 'text':
                                 
-                                    if 'text' in my_data: 
-                                        MetaverseGenerator(PDF_STORY_PATH, selected_story_book).metaverse_generator(0, my_data['text'], input_text_for_sync, self.co_ord_list)
+                                            if 'text' in my_data: 
+                                                MetaverseGenerator(PDF_STORY_PATH, selected_story_book).metaverse_generator(page_no, my_data['text'],                                                                                                    input_text_for_sync, co_ord_list)
                                         
-                                    if my_data[key] == self.safety_word : return
-                                    if my_data[key] == self.change_page: break
-                                    self.previous_line = my_data[key]
-                                    
+                                            if my_data[key] == self.safety_word : return
+                                            if my_data[key] == self.change_page:
+                                               page_changed = True
+                                               break
+                                            self.previous_line = my_data[key]
+                                if page_changed:
+                                    break # proceed to the next page
 
         except KeyboardInterrupt:
             print('\nDone -- KEYBOARDiNTERRUPT')
