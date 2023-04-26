@@ -1,6 +1,6 @@
 # Interactive Reading Application with MotionInput
 
-System Manual 
+A. System Manual 
 The system manual presents the necessary steps so that the future contributors will be able to run and test the application end-to-end as well as comprehend the internal structure and logic of the system.
 
 Functionalities and dependencies:
@@ -77,3 +77,54 @@ If the user wants to run the Reading Tracker feature, set the value of reading_t
 If the user wants to run the Metaverse Generator feature, set the value of metaverse_generator to true, leaving the other two set to false. For this feature, input the title of any document into the story_book parameter of the JSON file after making sure the book with the same name is downloaded in the Story Library folder. 
 
 Also, the callApi.py file also contains a call to the Book Preprocessor class which internally calls the Image Generator class. When a new book is added into the Story Library folder, the API automatically starts the book pre-processing and the rendering of the JSON and PNG, folders respectively.
+
+B. User Manual 
+
+The user manual presents the steps of running the Reading Application from the GUI.
+Two videos were produced for demonstrating the features of the application:
+
+1.	The initial demo, made in January, throughout the middle of the project progression:
+
+https://drive.google.com/file/d/1ZgThB0NBRgRlzf2S8NGuKrTdc4ao4frq/view?usp=share_link
+
+2.	The final demo produced before the final submission: 
+
+https://drive.google.com/drive/folders/1PAcdgqbP_A2uyZm9WNZouQ516wlr4Hnm?usp=share_link
+
+As seen in the last demo video, the Python Tkinter GUI is designed similar with an MFC C++ application as a simple menu which is intuitive and easy to use.
+
+First open a document on the screen from which to read.
+
+1.	By navigating to the Pronunciation Checker functionality and pressing on the corresponding button, the feature opens a secondary screen where the words are annotated by surrounding boxes based on a portion of text being read in real time(green boxes, indicating correct pronunciation, amber boxes for partially correct pronunciation and red boxed, symbolizing incorrect pronunciation)
+
+Recommendations: 
+-	There should be limited to no background noise
+-	The document should be open full-size, i.e., covering the whole width of the screen (not necessarily fitting the page, there can be only a portion of the text)
+-	Allow a few seconds at the beginning for the feature to be able to analyse the input document
+-	If the user wants to read another portion of the text from the same image rendered on the screen, they can just keep reading. However, when scrolling up-down, the image of the text modifies. Thus, the user needs to stop the current pronunciation checking process and restart it thru the GUI.
+
+
+
+2.	By navigating to the Karaoke Reading Tracker functionality and pressing on the corresponding button, the feature highlights the words that are read in real time.
+
+Recommendations: 
+-	There should be limited to no background noise
+-	The document should be open full-size, i.e., covering the whole width of the screen (not necessarily fitting the page, there can be only a portion of the text)
+-	Allow a few seconds at the beginning for the feature to be able to analyse the input document
+-	Due to a small bug, the system may be unfunctional when reading the first sentence. Thus, avoid reading the first sentence on page.
+
+ 
+
+3.	By navigating to the Metaverse Generator functionality and pressing on the corresponding button, the feature highlights the words that are read in real time alongside opening the corresponding image. 
+
+Recommendations: 
+-	There should be limited to no background noise
+-	The document should be open full-size and the whole page needs to fit to the height
+-	Allow a few seconds at the beginning for the feature to be able to analyse the input document
+-	For optimal results, open the document of one half of the screen
+-	The story book needs to have the PDF format
+-	For optimal results, set the default opening app for handling PDFs to a browser so that the feature can open the images in adjacent tabs instead of overlapping the images on screen
+-	Due to a small bug, the system may be unfunctional when reading the first sentence. Thus, avoid reading the first sentence on page.
+-	Read the pages in order and within a page read any sentence you like. When changing the page, first scroll to the next page (they need to be read in order), say “next page” so the system knows the page was changed.
+
+
