@@ -203,7 +203,7 @@ class StoryBookPreprocessor():
                 for ind in range(0, len(sentences), step):
                     
                     start_ind_sentence = ind
-                    coll_score = 0 
+                    coll_score, conc_score = 0, 0
                     if(ind+step>len(sentences)):
                         end_ind_sentence = start_ind_sentence + len(sentences) % step
                     else:
@@ -229,7 +229,12 @@ class StoryBookPreprocessor():
                                 coll_score += 1 
                         coll_score *= 100/len(collocations)
 
-                        if(coll_score>=30):
+                        for concordance in concordances:
+                            if(collocated_text.find(concordance)>-1):
+                                conc_score += 1 
+                        conc_score *= 100/len(concordances)
+
+                        if((coll_score>=30 and conc_score>=30) or (conc_score*100/coll_score<50)):
                             print(f"The collocation strength score ({coll_score}) showcases a meaningful text excerpt. The GPT3 images can be generated successfully!\n")
                  
                         else:
